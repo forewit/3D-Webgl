@@ -1,0 +1,29 @@
+body {
+  background: #196dff;
+}
+
+#main {
+  width: auto;
+  height: 600px;
+  background: #ffab19;
+  margin: 25px 5px;
+  padding: 25px 20px;
+  text-align: center;
+}
+
+.ul-no-style {
+  list-style-type: none;
+}
+
+.projects-container {
+   display: flex;
+   justify-content: space-around;
+   padding: 0px;
+   border: solid 3px red;
+}
+
+ .project {
+   border: solid 3px black;
+   width: 100px;
+   height: 100px;
+ }
