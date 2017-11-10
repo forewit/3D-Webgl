@@ -4,6 +4,7 @@ html, body {
   margin: 0;
 }
 #main {
+  overflow: auto;
   min-height: 100%;
   background: red;
 }
@@ -12,8 +13,26 @@ html, body {
   margin-top: -50px;
   background: blue;
 }
-.projects-container {
-  padding: 20px;
-  padding-bottom: 50px;
+
+.main-container {
+  margin: 10px 5px 10px 5px;
   background: orange;
+}
+
+.projects-container {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0;
+}
+
+.project {
+  flex-grow: 1;
+  height: 150px;
+  width: 150px;
+  border: solid 3px black;
+}
+
+.ul-no-style {
+  list-style-type: none;
 }
