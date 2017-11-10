@@ -36,3 +36,16 @@ html, body {
 .ul-no-style {
   list-style-type: none;
 }
+
+#parallax-bg1 {
+    position: fixed;
+    z-index: 10;
+    top: 0px;
+
+}
+
+#bg1-1 {
+  position: absolute;
+  height: 100px;
+  width: 100px;
+}
