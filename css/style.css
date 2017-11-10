@@ -5,28 +5,35 @@ html, body {
 
 }
 
-#main {
+#page {
   overflow: auto;
   min-height: 100%;
   background: red;
 }
+
 #footer {
   position: relative;
   z-index: 1000;
-  box-shadow:
   height: 50px;
   margin-top: -50px;
-  padding-bottom: 50px;
-  margin-bottom: -50px;
   background: teal;
 }
 
-.main-container {
+#projects, #project-details {
   margin: 10px 5px 10px 5px;
   background: tan;
 }
 
-.projects-container {
+#parallax-layer {
+  overflow: hidden;
+  position: fixed;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
+}
+
+.projects-list {
   display: flex;
   justify-content: space-between;
   margin: 0;
@@ -40,20 +47,7 @@ html, body {
   border: solid 3px black;
 }
 
-.ul-no-style {
-  list-style-type: none;
-}
-
-#parallax-container {
-  overflow: hidden;
-  position: fixed;
-  height: 100%;
-  width: 100%;
-  top: 0;
-  left: 0;
-}
-
-#parallax-bg1 {
+.parallax-bg1 {
     position: absolute;
     z-index: 1;
     bottom: 0px;
@@ -63,7 +57,7 @@ html, body {
     border: solid 3px orange;
 }
 
-#parallax-bg2 {
+.parallax-bg2 {
     position: absolute;
     z-index: 2;
     bottom: 0px;
@@ -71,4 +65,8 @@ html, body {
     height: 500px;
     width: 100px;
     border: solid 3px purple;
+}
+
+.ul-no-style {
+  list-style-type: none;
 }
