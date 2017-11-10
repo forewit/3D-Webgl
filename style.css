@@ -1,29 +1,19 @@
-body {
-  background: #196dff;
-}
 
+html, body {
+  height: 100%;
+  margin: 0;
+}
 #main {
-  width: auto;
-  height: 600px;
-  background: #ffab19;
-  margin: 25px 5px;
-  padding: 25px 20px;
-  text-align: center;
+  min-height: 100%;
+  background: red;
 }
-
-.ul-no-style {
-  list-style-type: none;
+#footer {
+  height: 50px;
+  margin-top: -50px;
+  background: blue;
 }
-
 .projects-container {
-   display: flex;
-   justify-content: space-around;
-   padding: 0px;
-   border: solid 3px red;
+  padding: 20px;
+  padding-bottom: 50px;
+  background: orange;
 }
-
- .project {
-   border: solid 3px black;
-   width: 100px;
-   height: 100px;
- }
