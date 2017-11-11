@@ -20,16 +20,14 @@ header {
 
 main {
   grid-area: content;
-  border: solid 5px teal;
 }
 
 footer {
   grid-area: footer;
   background: blue;
-  opacity: 1;
+  opacity: 0.2;
   z-index: 1000;
 }
-
 
 .parallax-bg1 {
   position: fixed;
