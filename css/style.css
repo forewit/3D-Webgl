@@ -1,6 +1,3 @@
-
-
-
 body {
   margin: 0;
   display: grid;
@@ -29,21 +26,45 @@ footer {
   z-index: 1000;
 }
 
-.parallax-bg1 {
+#parallax-layer {
   position: fixed;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+.parallax-bg1 {
+  position: absolute;
   bottom: 0px;
-  left: 0px
+  left: -30px;
   z-index: 1;
 }
 .parallax-bg2 {
-  position: fixed;
+  position: absolute;
   bottom: -17px;
-  left: 68px;
+  left: 38px;
   z-index: 2;
 }
 .parallax-bg3 {
-  position: fixed;
+  position: absolute;
   bottom: 0px;
-  left: 136px;
+  left: 106px;
   z-index: 1;
+}
+.parallax-bg4 {
+  position: absolute;
+  bottom: -17px;
+  left: 174px;
+  z-index: 3;
+}
+.parallax-bg5 {
+  position: absolute;
+  bottom: -34px;
+  left: 242px;
+  z-index: 3;
+}
+.parallax-bg6 {
+  position: absolute;
+  bottom: -51px;
+  left: 174px;
+  z-index: 3;
 }
