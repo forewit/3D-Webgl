@@ -1,13 +1,14 @@
-$(window).bind('scroll',function(e){
-    parallaxScroll();
-});
+$(function (){ // Wait for document ready
+    // Init controller
+    var controller = new ScrollMagic.Controller();
 
-function parallaxScroll(){
-    var scrolled = $(window).scrollTop();
-    $('#parallax-bg1').css('bottom',(0-(scrolled*.1 + 0))+'px');
-    $('#parallax-bg2').css('bottom',(0-(scrolled*.15 + 17))+'px');
-    $('#parallax-bg3').css('bottom',(0-(scrolled*.12 + 0))+'px');
-    $('#parallax-bg4').css('bottom',(0-(scrolled*.06 + 17))+'px');
-    $('#parallax-bg5').css('bottom',(0-(scrolled*.03 + 34))+'px');
-    $('#parallax-bg6').css('bottom',(0-(scrolled*.07 + 51))+'px');
-}
+    // Build scene
+    new ScrollMagic.Scene({
+        triggerElement: "#projects", // point of execution
+        duration: $(window).height(), // pin element for the window height
+        triggerHook: 0, // don't trigger until #projects hits the top of the viewport
+        reverse: true // allows the effect to trigger when srolled in reverse direction
+    })
+    .setPin("#target") // the element we want to point
+    .addTo(controller); // add scene to ScrollMagic controller
+});
