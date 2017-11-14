@@ -1,35 +1,51 @@
 <html>
 
 <head>
-  <title>Title</title>
-  <link href="css/style.css" type="text/css" rel="stylesheet" />
-
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <meta name="description" content="My personal portfolio of projects and experience." />
+  <meta name="author" content="Marc Anderson" />
+  <title>Marc | Portfolio</title>
+  <link href="css/main.css"rel="stylesheet" />
 </head>
 
 <body>
 
-  <header></header>
+  <nav>
+    <ul class="ul-no-style nav-items">
+      <li class="nav-item">Projects</li>
+      <li class="nav-item">Skills</li>
+      <li class="nav-item">About Me</li>
+    </ul>
+  </nav>
 
   <main></main>
 
   <footer></footer>
 
   <div id="parallax-layer">
-    <img class="parallax-bg1" src="img/red-column.png" />
-    <img class="parallax-bg2" src="img/red-column.png" />
-    <img class="parallax-bg3" src="img/red-column.png" />
-    <img class="parallax-bg4" src="img/green-column.png" />
-    <img class="parallax-bg5" src="img/green-column.png" />
-    <img class="parallax-bg6" src="img/green-column.png" />
+    <img id="parallax-bg1" src="img/grey-column.png" />
+    <img id="parallax-bg2" src="img/grey-column.png" />
+    <img id="parallax-bg3" src="img/grey-column.png" />
+    <img id="parallax-bg4" src="img/pink-column.png" />
+    <img id="parallax-bg5" src="img/pink-column.png" />
+    <img id="parallax-bg6" src="img/pink-column.png" />
   </div>
 
 
 
-  <!--Import js files-->
+  <!--Import js files (REVERT TO TWEENLITE FOR PROD)-->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
   <script>
-    !window.jQuery && document.write('<script src="js/jquery.min.js"><\/script>')
+    window.jQuery || document.write('<script src="js/jquery-3.2.1.min.js"><\/script>')
   </script>
+
+  <!--on prod include downloaded versions-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.3/TweenMax.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/ScrollMagic/2.0.5/ScrollMagic.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/ScrollMagic/2.0.5/plugins/debug.addIndicators.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/ScrollMagic/2.0.5/plugins/animation.gsap.js"></script>
+
   <script src="js/script.js"></script>
 
 </body>
