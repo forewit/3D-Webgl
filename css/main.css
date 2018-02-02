@@ -46,21 +46,18 @@ footer {
 
 #about-me {
 	grid-area: about-me;
-	background: red;
+	background: #ff000010;
   height: 1000px;
-  opacity: 0.1;
 }
 #projects {
 	grid-area: projects;
-	background: green;
+	background: #00ff0010;
   height: 1000px;
-  opacity: 0.1;
 }
 #skills {
 	grid-area: skills;
-	background: blue;
+	background: #0000ff10;
   height: 1000px;
-  opacity: 0.1;
 }
 
 #pinned-target1 {
