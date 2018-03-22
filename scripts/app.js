@@ -1,27 +1,25 @@
-var gl;
-
-var InitDemo = function () {
-	loadTextResource('./shader.vs.glsl', function (vsErr, vsText) {
+var Init = function () {
+	loadTextResource('./src/shader.vs.glsl', function (vsErr, vsText) {
 		if (vsErr) {
 			alert('Fatal error getting vertex shader (see console)');
 			console.error(vsErr);
 		} else {
-			loadTextResource('./shader.fs.glsl', function (fsErr, fsText) {
+			loadTextResource('./src/shader.fs.glsl', function (fsErr, fsText) {
 				if (fsErr) {
 					alert('Fatal error getting fragment shader (see console)');
 					console.error(fsErr);
 				} else {
-					loadJSONResource('./Susan.json', function (modelErr, modelObj) {
+					loadJSONResource('./src/leaf.json', function (modelErr, modelObj) {
 						if (modelErr) {
-							alert('Fatal error getting Susan model (see console)');
+							alert('Fatal error getting leaf model (see console)');
 							console.error(fsErr);
 						} else {
-							loadImage('./SusanTexture.png', function (imgErr, img) {
+							loadImage('./img/leafTexture.png', function (imgErr, img) {
 								if (imgErr) {
-									alert('Fatal error getting Susan texture (see console)');
+									alert('Fatal error getting leaf texture (see console)');
 									console.error(imgErr);
 								} else {
-									RunDemo(vsText, fsText, img, modelObj);
+									Run(vsText, fsText, img, modelObj);
 								}
 							});
 						}
@@ -32,11 +30,11 @@ var InitDemo = function () {
 	});
 };
 
-var RunDemo = function (vertexShaderText, fragmentShaderText, SusanImage, SusanModel) {
+var Run = function (vertexShaderText, fragmentShaderText, leafImage, leafModel) {
 	console.log('This is working');
-	model = SusanModel;
+	model = leafModel;
 
-	var canvas = document.getElementById('game-surface');
+	var canvas = document.getElementById('webgl-surface');
 	gl = canvas.getContext('webgl');
 
 	if (!gl) {
@@ -48,7 +46,12 @@ var RunDemo = function (vertexShaderText, fragmentShaderText, SusanImage, SusanM
 		alert('Your browser does not support WebGL');
 	}
 
-	gl.clearColor(0.75, 0.85, 0.8, 1.0);
+	// Dynamically changing canvas size
+    //canvas.width = window.innerWidth;
+    //canvas.height = window.innerHeight;
+    //gl.viewport(0,0, window.innerWidth, window.innerHeight);
+
+	gl.clearColor(0.75, 0.85, 0.8, 0.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	gl.enable(gl.DEPTH_TEST);
 	gl.enable(gl.CULL_FACE);
@@ -93,28 +96,28 @@ var RunDemo = function (vertexShaderText, fragmentShaderText, SusanImage, SusanM
 	//
 	// Create buffer
 	//
-	var susanVertices = SusanModel.meshes[0].vertices;
-	var susanIndices = [].concat.apply([], SusanModel.meshes[0].faces);
-	var susanTexCoords = SusanModel.meshes[0].texturecoords[0];
-	var susanNormals = SusanModel.meshes[0].normals;
+	var leafVertices = leafModel.meshes[0].vertices;
+	var leafIndices = [].concat.apply([], leafModel.meshes[0].faces);
+	var leafTexCoords = leafModel.meshes[0].texturecoords[0];
+	var leafNormals = leafModel.meshes[0].normals;
 
-	var susanPosVertexBufferObject = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, susanPosVertexBufferObject);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(susanVertices), gl.STATIC_DRAW);
+	var leafPosVertexBufferObject = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, leafPosVertexBufferObject);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(leafVertices), gl.STATIC_DRAW);
 
-	var susanTexCoordVertexBufferObject = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, susanTexCoordVertexBufferObject);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(susanTexCoords), gl.STATIC_DRAW);
+	var leafTexCoordVertexBufferObject = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, leafTexCoordVertexBufferObject);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(leafTexCoords), gl.STATIC_DRAW);
 
-	var susanIndexBufferObject = gl.createBuffer();
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, susanIndexBufferObject);
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(susanIndices), gl.STATIC_DRAW);
+	var leafIndexBufferObject = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, leafIndexBufferObject);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(leafIndices), gl.STATIC_DRAW);
 
-	var susanNormalBufferObject = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, susanNormalBufferObject);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(susanNormals), gl.STATIC_DRAW);
+	var leafNormalBufferObject = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, leafNormalBufferObject);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(leafNormals), gl.STATIC_DRAW);
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, susanPosVertexBufferObject);
+	gl.bindBuffer(gl.ARRAY_BUFFER, leafPosVertexBufferObject);
 	var positionAttribLocation = gl.getAttribLocation(program, 'vertPosition');
 	gl.vertexAttribPointer(
 		positionAttribLocation, // Attribute location
@@ -126,7 +129,7 @@ var RunDemo = function (vertexShaderText, fragmentShaderText, SusanImage, SusanM
 	);
 	gl.enableVertexAttribArray(positionAttribLocation);
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, susanTexCoordVertexBufferObject);
+	gl.bindBuffer(gl.ARRAY_BUFFER, leafTexCoordVertexBufferObject);
 	var texCoordAttribLocation = gl.getAttribLocation(program, 'vertTexCoord');
 	gl.vertexAttribPointer(
 		texCoordAttribLocation, // Attribute location
@@ -138,7 +141,7 @@ var RunDemo = function (vertexShaderText, fragmentShaderText, SusanImage, SusanM
 	);
 	gl.enableVertexAttribArray(texCoordAttribLocation);
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, susanNormalBufferObject);
+	gl.bindBuffer(gl.ARRAY_BUFFER, leafNormalBufferObject);
 	var normalAttribLocation = gl.getAttribLocation(program, 'vertNormal');
 	gl.vertexAttribPointer(
 		normalAttribLocation,
@@ -152,8 +155,8 @@ var RunDemo = function (vertexShaderText, fragmentShaderText, SusanImage, SusanM
 	//
 	// Create texture
 	//
-	var susanTexture = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D, susanTexture);
+	var leafTexture = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, leafTexture);
 	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -162,7 +165,7 @@ var RunDemo = function (vertexShaderText, fragmentShaderText, SusanImage, SusanM
 	gl.texImage2D(
 		gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
 		gl.UNSIGNED_BYTE,
-		SusanImage
+		leafImage
 	);
 	gl.bindTexture(gl.TEXTURE_2D, null);
 
@@ -213,13 +216,13 @@ var RunDemo = function (vertexShaderText, fragmentShaderText, SusanImage, SusanM
 		mat4.mul(worldMatrix, yRotationMatrix, xRotationMatrix);
 		gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
 
-		gl.clearColor(0.75, 0.85, 0.8, 1.0);
+		gl.clearColor(0.75, 0.85, 0.8, 0.0);
 		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
-		gl.bindTexture(gl.TEXTURE_2D, susanTexture);
+		gl.bindTexture(gl.TEXTURE_2D, leafTexture);
 		gl.activeTexture(gl.TEXTURE0);
 
-		gl.drawElements(gl.TRIANGLES, susanIndices.length, gl.UNSIGNED_SHORT, 0);
+		gl.drawElements(gl.TRIANGLES, leafIndices.length, gl.UNSIGNED_SHORT, 0);
 
 		requestAnimationFrame(loop);
 	};

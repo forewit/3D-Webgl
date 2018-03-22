@@ -1,3 +1,26 @@
 #preload {
   display: none;
 }
+
+body {
+    background: red;
+}
+
+#webgl-surface {
+    position: fixed;
+    height: 600px;
+    width: 800px;
+}
+
+#home {
+    height: 600px;
+    background:  rgb(200,200,200);
+}
+
+#portfolio {
+
+}
+
+#about {
+
+}
