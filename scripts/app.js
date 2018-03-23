@@ -109,10 +109,16 @@ var addModel = function(gl, program, textureImage, modelObj) {
 	return([texture, indices]);
 };
 
+
+//
+// TODO: modify to accept multiple models
+//
 var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leafModel) {
 	console.log('This is working');
-	model = leafModel;
 
+	//
+	// Setup WebGL canvas
+	//
 	var canvas = document.getElementById('webgl-surface');
 	gl = canvas.getContext('webgl');
 
@@ -125,12 +131,6 @@ var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leaf
 		alert('Your browser does not support WebGL');
 	}
 
-	// Dynamically changing canvas size
-    //canvas.width = window.innerWidth;
-    //canvas.height = window.innerHeight;
-    //gl.viewport(0,0, window.innerWidth, window.innerHeight);
-
-	gl.clearColor(0.75, 0.85, 0.8, 0.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	gl.enable(gl.DEPTH_TEST);
 	gl.enable(gl.CULL_FACE);
@@ -173,14 +173,15 @@ var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leaf
 	}
 
 	//
-	// Add model
+	// Add models
 	//
 	var modelInfo = addModel(gl, program, leafImage, leafModel);
 	leafTexture = modelInfo[0];
 	leafIndices = modelInfo[1];
 
-
-	// Tell OpenGL state machine which program should be active.
+	//
+	// Define world, view, and projection matrices
+	//
 	gl.useProgram(program);
 
 	var matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld');
@@ -216,6 +217,7 @@ var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leaf
 
 	//
 	// Main render loop
+	// TODO: modify to accept multiple models
 	//
 	var identityMatrix = new Float32Array(16);
 	mat4.identity(identityMatrix);
@@ -227,7 +229,6 @@ var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leaf
 		mat4.mul(worldMatrix, yRotationMatrix, xRotationMatrix);
 		gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
 
-		gl.clearColor(0.75, 0.85, 0.8, 0.0);
 		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
 		gl.bindTexture(gl.TEXTURE_2D, leafTexture);

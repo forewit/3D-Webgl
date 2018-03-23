@@ -7,18 +7,25 @@ body {
 }
 
 #webgl-surface {
-    position: fixed;
+    position:absolute;
 }
 
 #home {
-    height: 600px;
-    background:  rgb(200,200,200);
+    height: 800px;
+    background:  rgb(200,100,200);
 }
 
 #portfolio {
-
+    height: 800px;
+    background:  rgb(100,200,200);
 }
 
 #about {
+    height: 800px;
+    background:  rgb(200,200,100);
+}
 
+footer {
+    height: 200px;
+    background: rgb(100,100,100);
 }
