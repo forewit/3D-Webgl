@@ -1,4 +1,4 @@
-var Init = function () {
+var loadResources = function () {
 	loadTextResource('./src/shader.vs.glsl', function (vsErr, vsText) {
 		if (vsErr) {
 			alert('Fatal error getting vertex shader (see console)');
@@ -19,7 +19,7 @@ var Init = function () {
 									alert('Fatal error getting leaf texture (see console)');
 									console.error(imgErr);
 								} else {
-									Run(vsText, fsText, img, modelObj);
+									startWebGL(vsText, fsText, img, modelObj);
 								}
 							});
 						}
@@ -109,7 +109,7 @@ var addModel = function(gl, program, textureImage, modelObj) {
 	return([texture, indices]);
 };
 
-var Run = function (vertexShaderText, fragmentShaderText, leafImage, leafModel) {
+var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leafModel) {
 	console.log('This is working');
 	model = leafModel;
 

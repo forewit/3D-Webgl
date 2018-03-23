@@ -8,8 +8,6 @@ body {
 
 #webgl-surface {
     position: fixed;
-    height: 600px;
-    width: 800px;
 }
 
 #home {
