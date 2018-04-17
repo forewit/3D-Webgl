@@ -9,17 +9,17 @@ var loadResources = function () {
 					alert('Fatal error getting fragment shader (see console)');
 					console.error(fsErr);
 				} else {
-					loadJSONResource('./src/leaf.json', function (modelErr, modelObj) {
+					loadJSONResource('./src/leaf.json', function (modelErr, leafJSON) {
 						if (modelErr) {
 							alert('Fatal error getting leaf model (see console)');
 							console.error(fsErr);
 						} else {
-							loadImage('./img/leafTexture.png', function (imgErr, img) {
+							loadImage('./img/leafTexture.png', function (imgErr, leafImg) {
 								if (imgErr) {
 									alert('Fatal error getting leaf texture (see console)');
 									console.error(imgErr);
 								} else {
-									startWebGL(vsText, fsText, img, modelObj);
+									startWebGL(vsText, fsText, leafImg, leafJSON);
 								}
 							});
 						}
@@ -30,90 +30,12 @@ var loadResources = function () {
 	});
 };
 
-var addModel = function(gl, program, textureImage, modelObj) {
-	//
-	// Create buffer
-	//
-	var vertices = modelObj.meshes[0].vertices;
-	var indices = [].concat.apply([], modelObj.meshes[0].faces);
-	var texCoords = modelObj.meshes[0].texturecoords[0];
-	var normals = modelObj.meshes[0].normals;
-
-	var posVertexBufferObject = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, posVertexBufferObject);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
-	var texCoordVertexBufferObject = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, texCoordVertexBufferObject);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
-
-	var indexBufferObject = gl.createBuffer();
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferObject);
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-
-	var normalBufferObject = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, normalBufferObject);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, posVertexBufferObject);
-	var positionAttribLocation = gl.getAttribLocation(program, 'vertPosition');
-	gl.vertexAttribPointer(
-		positionAttribLocation, // Attribute location
-		3, // Number of elements per attribute
-		gl.FLOAT, // Type of elements
-		gl.FALSE,
-		3 * Float32Array.BYTES_PER_ELEMENT, // Size of an individual vertex
-		0 // Offset from the beginning of a single vertex to this attribute
-	);
-	gl.enableVertexAttribArray(positionAttribLocation);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, texCoordVertexBufferObject);
-	var texCoordAttribLocation = gl.getAttribLocation(program, 'vertTexCoord');
-	gl.vertexAttribPointer(
-		texCoordAttribLocation, // Attribute location
-		2, // Number of elements per attribute
-		gl.FLOAT, // Type of elements
-		gl.FALSE,
-		2 * Float32Array.BYTES_PER_ELEMENT, // Size of an individual vertex
-		0
-	);
-	gl.enableVertexAttribArray(texCoordAttribLocation);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, normalBufferObject);
-	var normalAttribLocation = gl.getAttribLocation(program, 'vertNormal');
-	gl.vertexAttribPointer(
-		normalAttribLocation,
-		3, gl.FLOAT,
-		gl.TRUE,
-		3 * Float32Array.BYTES_PER_ELEMENT,
-		0
-	);
-	gl.enableVertexAttribArray(normalAttribLocation);
-
-	//
-	// Create texture
-	//
-	var texture = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-	gl.texImage2D(
-		gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
-		gl.UNSIGNED_BYTE,
-		textureImage
-	);
-	gl.bindTexture(gl.TEXTURE_2D, null);
-	return([texture, indices]);
-};
 
 
 //
 // TODO: modify to accept multiple models
 //
-var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leafModel) {
+var startWebGL = function (vertexShaderText, fragmentShaderText, leafImg, leafJSON) {
 	console.log('This is working');
 
 	//
@@ -138,46 +60,17 @@ var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leaf
 	gl.cullFace(gl.BACK);
 
 	//
-	// Create shaders
+	// Create shaders and program
 	//
-	var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-	var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-
-	gl.shaderSource(vertexShader, vertexShaderText);
-	gl.shaderSource(fragmentShader, fragmentShaderText);
-
-	gl.compileShader(vertexShader);
-	if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-		console.error('ERROR compiling vertex shader!', gl.getShaderInfoLog(vertexShader));
-		return;
-	}
-
-	gl.compileShader(fragmentShader);
-	if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-		console.error('ERROR compiling fragment shader!', gl.getShaderInfoLog(fragmentShader));
-		return;
-	}
-
-	var program = gl.createProgram();
-	gl.attachShader(program, vertexShader);
-	gl.attachShader(program, fragmentShader);
-	gl.linkProgram(program);
-	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-		console.error('ERROR linking program!', gl.getProgramInfoLog(program));
-		return;
-	}
-	gl.validateProgram(program);
-	if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
-		console.error('ERROR validating program!', gl.getProgramInfoLog(program));
-		return;
-	}
+	var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderText);
+	var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderText);
+	var program = createProgram(gl, vertexShader, fragmentShader);
 
 	//
 	// Add models
 	//
-	var modelInfo = addModel(gl, program, leafImage, leafModel);
-	leafTexture = modelInfo[0];
-	leafIndices = modelInfo[1];
+	var leafModel = addModel(gl, program, leafImg, leafJSON);
+
 
 	//
 	// Define world, view, and projection matrices
@@ -191,6 +84,7 @@ var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leaf
 	var worldMatrix = new Float32Array(16);
 	var viewMatrix = new Float32Array(16);
 	var projMatrix = new Float32Array(16);
+
 	mat4.identity(worldMatrix);
 	mat4.lookAt(viewMatrix, [0, 0, -8], [0, 0, 0], [0, 1, 0]);
 	mat4.perspective(projMatrix, glMatrix.toRadian(45), canvas.clientWidth / canvas.clientHeight, 0.1, 1000.0);
@@ -198,9 +92,6 @@ var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leaf
 	gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
 	gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix);
 	gl.uniformMatrix4fv(matProjUniformLocation, gl.FALSE, projMatrix);
-
-	var xRotationMatrix = new Float32Array(16);
-	var yRotationMatrix = new Float32Array(16);
 
 	//
 	// Lighting information
@@ -221,20 +112,18 @@ var startWebGL = function (vertexShaderText, fragmentShaderText, leafImage, leaf
 	//
 	var identityMatrix = new Float32Array(16);
 	mat4.identity(identityMatrix);
-	var angle = 0;
+	var originalViewMatrix = new Float32Array(16);
+	mat4.copy(originalViewMatrix, viewMatrix);
+
 	var loop = function () {
-		angle = performance.now() / 1000 / 6 * 2 * Math.PI;
-		mat4.rotate(yRotationMatrix, identityMatrix, angle, [0, 1, 0]);
-		mat4.rotate(xRotationMatrix, identityMatrix, angle / 4, [1, 0, 0]);
-		mat4.mul(worldMatrix, yRotationMatrix, xRotationMatrix);
-		gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
+		// Offset viewMatrix
+		mat4.translate(viewMatrix, originalViewMatrix, [0, scrollY/80, 0]);
+		gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix);
 
 		gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
-
-		gl.bindTexture(gl.TEXTURE_2D, leafTexture);
+		gl.bindTexture(gl.TEXTURE_2D, leafModel.texture);
 		gl.activeTexture(gl.TEXTURE0);
-
-		gl.drawElements(gl.TRIANGLES, leafIndices.length, gl.UNSIGNED_SHORT, 0);
+		gl.drawElements(gl.TRIANGLES, leafModel.indices.length, gl.UNSIGNED_SHORT, 0);
 
 		requestAnimationFrame(loop);
 	};
