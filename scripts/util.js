@@ -1,5 +1,5 @@
 // Load a text resource from a file over the network
-var loadTextResource = function (url, callback) {
+function loadTextResource (url, callback) {
 	var request = new XMLHttpRequest();
 	request.open('GET', url + '?please-dont-cache=' + Math.random(), true);
 	request.onload = function () {
@@ -12,7 +12,7 @@ var loadTextResource = function (url, callback) {
 	request.send();
 };
 
-var loadImage = function (url, callback) {
+function loadImage (url, callback) {
 	var image = new Image();
 	image.onload = function () {
 		callback(null, image);
@@ -20,7 +20,7 @@ var loadImage = function (url, callback) {
 	image.src = url;
 };
 
-var loadJSONResource = function (url, callback) {
+function loadJSONResource (url, callback) {
 	loadTextResource(url, function (err, result) {
 		if (err) {
 			callback(err);
