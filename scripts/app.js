@@ -204,6 +204,10 @@ var startWebGL = function (vertexShaderText, fragmentShaderText, texImg, leafJSO
 
 
 
+
+
+
+
 var old = function () {
 		console.log('This is working');
 
