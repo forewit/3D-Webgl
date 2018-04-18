@@ -12,14 +12,29 @@ var loadResources = function () {
 					loadJSONResource('./src/leaf.json', function (modelErr, leafJSON) {
 						if (modelErr) {
 							alert('Fatal error getting leaf model (see console)');
-							console.error(fsErr);
+							console.error(modelErr);
 						} else {
-							loadImage('./img/leafTexture.png', function (imgErr, leafImg) {
+							loadImage('./img/texture.png', function (imgErr, texImg) {
 								if (imgErr) {
 									alert('Fatal error getting leaf texture (see console)');
 									console.error(imgErr);
 								} else {
-									startWebGL(vsText, fsText, leafImg, leafJSON);
+									loadJSONResource('./src/tree1.json', function (model2Err, tree1JSON) {
+										if (model2Err) {
+											alert('Fatal error getting tree1 model (see console)');
+											console.error(model2Err);
+										} else {
+											loadImage('./img/texture2.png', function(img2Err, tex2Img) {
+												if (img2Err) {
+													alert('Fatal error getting tree1 texture (see console)');
+													console.error(img2Err);
+												} else {
+													startWebGL(vsText, fsText, texImg, leafJSON, tex2Img, tree1JSON);
+												}
+											});
+										}
+									});
+
 								}
 							});
 						}
@@ -35,7 +50,7 @@ var loadResources = function () {
 //
 // TODO: modify to accept multiple models
 //
-var startWebGL = function (vertexShaderText, fragmentShaderText, leafImg, leafJSON) {
+var startWebGL = function (vertexShaderText, fragmentShaderText, texImg, leafJSON, tex2Img, tree1JSON) {
 	console.log('This is working');
 
 	//
@@ -66,10 +81,18 @@ var startWebGL = function (vertexShaderText, fragmentShaderText, leafImg, leafJS
 	var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderText);
 	var program = createProgram(gl, vertexShader, fragmentShader);
 
+
 	//
 	// Add models
 	//
-	var leafModel = addModel(gl, program, leafImg, leafJSON);
+	var leafModel = addModel(gl, program, texImg, leafJSON);
+	//var tree1Model = add2Model(gl, program, texImg, tree1JSON);
+
+	bindAttribBuffers(gl, program,
+		leafModel.posVertexBuffer,
+		leafModel.texCoordVertexBuffer,
+		leafModel.normalBuffer);
+
 
 
 	//
