@@ -7,7 +7,7 @@ body {
 }
 
 #webgl-surface {
-    position:absolute;
+    position: fixed;
 }
 
 #home {

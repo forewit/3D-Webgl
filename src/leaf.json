@@ -21,7 +21,7 @@
 		]
 		,"children": [
 			{
-				 "name": "Leaf"
+				 "name": "leaf"
 				,"transformation": [
 					 100
 					,0
@@ -91,7 +91,7 @@
 	,"flags": 8
 	,"meshes": [
 		{
-			 "name": "Leaf"
+			 "name": "leaf"
 			,"materialindex": 0
 			,"primitivetypes": 4
 			,"vertices": [

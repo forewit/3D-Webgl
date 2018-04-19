@@ -1,3 +1,0 @@
-TODO: allow multiple models with locations (or their own update functions?)
-TODO: setup gallery for portfolio projects
-TODO: grab scroll events for 3D effect
