@@ -1,4 +1,6 @@
-// Load a text resource from a file over the network
+'use strict';
+
+// Adapted from: https://github.com/sessamekesh/IndigoCS-webgl-tutorials
 function loadTextResource (url, callback) {
 	var request = new XMLHttpRequest();
 	request.open('GET', url + '?please-dont-cache=' + Math.random(), true);
@@ -12,6 +14,7 @@ function loadTextResource (url, callback) {
 	request.send();
 };
 
+// Adapted from: https://github.com/sessamekesh/IndigoCS-webgl-tutorials
 function loadImage (url, callback) {
 	var image = new Image();
 	image.onload = function () {
@@ -20,6 +23,7 @@ function loadImage (url, callback) {
 	image.src = url;
 };
 
+// Adapted from: https://github.com/sessamekesh/IndigoCS-webgl-tutorials
 function loadJSONResource (url, callback) {
 	loadTextResource(url, function (err, result) {
 		if (err) {
@@ -34,28 +38,45 @@ function loadJSONResource (url, callback) {
 	});
 };
 
-function createShader(gl, type, source) {
-  var shader = gl.createShader(type);
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-  if (success) {
-    return shader;
-  }
+// Adapted from: https://github.com/sessamekesh/IndigoCS-webgl-tutorials
+var createShaderProgram = function (gl, vsText, fsText) {
+	var vs = gl.createShader(gl.VERTEX_SHADER);
+	gl.shaderSource(vs, vsText);
+	gl.compileShader(vs);
+	if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+		return {
+			error: 'Error compiling vertex shader: ' + gl.getShaderInfoLog(vs)
+		};
+	}
 
-  console.error('ERROR compiling shader!', gl.getShaderInfoLog(shader));
-  gl.deleteShader(shader);
-}
+	var fs = gl.createShader(gl.FRAGMENT_SHADER);
+	gl.shaderSource(fs, fsText);
+	gl.compileShader(fs);
+	if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+		return {
+			error: 'Error compiling fragment shader: ' + gl.getShaderInfoLog(fs)
+		};
+	}
 
-function createProgram(gl, vertexShader, fragmentShader) {
-  var program = gl.createProgram();
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-  if (success) {
-    return program;
-  }
-  console.error('ERROR validating program!', gl.getProgramInfoLog(program));
-  gl.deleteProgram(program);
-}
+	var program = gl.createProgram();
+	gl.attachShader(program, vs);
+	gl.attachShader(program, fs);
+	gl.linkProgram(program);
+	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+		return {
+			error: 'Error linking program: ' + gl.getProgramInfoLog(program)
+		};
+	}
+
+	gl.validateProgram(program);
+	if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
+		return {
+			error: 'Error validating program: ' + gl.getProgramInfoLog(program)
+		};
+	}
+
+	return program;
+
+	// Check: if (result.error)
+	// otherwise, program is GL program.
+};

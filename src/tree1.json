@@ -21,7 +21,7 @@
 		]
 		,"children": [
 			{
-				 "name": "Cube.007"
+				 "name": "tree1"
 				,"transformation": [
 					 1
 					,0
@@ -49,7 +49,7 @@
 	,"flags": 8
 	,"meshes": [
 		{
-			 "name": "Cube.007"
+			 "name": "tree1"
 			,"materialindex": 0
 			,"primitivetypes": 4
 			,"vertices": [
