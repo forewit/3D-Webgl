@@ -1,31 +1,50 @@
+/* global css */
+body {
+    background: #f0f0f0;
+    margin: 0;
+    padding: 0;
+}
+
+/* section styles */
 #preload {
   display: none;
 }
 
-body {
-    background: red;
-}
-
 #webgl-surface {
     position: fixed;
+    left: 0;
+    top: 0;
 }
 
 #home {
-    height: 800px;
+    height: 100%;
     background:  rgb(200,100,200);
 }
 
 #portfolio {
-    height: 800px;
+    height: 100px;
     background:  rgb(100,200,200);
 }
 
 #about {
-    height: 800px;
+    height: 200px;
     background:  rgb(200,200,100);
 }
 
 footer {
-    height: 200px;
-    background: rgb(100,100,100);
+  height: 300px;
+  background: rgb(100,100,100);
+}
+
+/* class styles */
+.container {
+  box-shadow: 3px 3px 6px grey;
+  margin: 20px auto;
+  max-width: 1200px;
+  align: center;
+}
+
+.full-width {
+  width: 100%;
+  margin: 0;
 }
