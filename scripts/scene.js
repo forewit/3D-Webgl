@@ -13,6 +13,10 @@ var scene = function (gl) {
 	this.textures = [];
 };
 
+//
+// TODO: each model should also be passed an update function
+// that will be called in the update loop
+//
 scene.prototype.__addModel = function (jsonURL, imgURL) {
 	var me = this;
 
