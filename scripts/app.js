@@ -14,14 +14,27 @@ var init = function () {
     	return;
     }
 
-    scene = new scene(gl);
-    scene.Load();
-    scene.AddModel('./src/tree.json','./img/texture.png');
 
-    // Update loop
-    var loop = function(dt) {
-        var perSec = dt / 1000 * 2 * Math.PI;
+    scene = new Scene(gl);
 
-    };
-    scene.Begin(loop);
+    scene.Load( function (){
+        scene.AddModel('tree', './src/tree.json', './img/texture.png', function (){
+
+            scene.models.tree.position([0,0,1]);
+
+            var loop = function(dt) {
+                var perSec = dt / 1000 * 2 * Math.PI;
+
+                scene.camera.moveUp(0.01*perSec);
+                scene.camera.getViewMatrix(scene.viewMatrix);
+            };
+
+            scene.Begin(loop);
+        });
+    });
+
+
+
+
+
 };

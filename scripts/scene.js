@@ -8,21 +8,21 @@
  *
  * @param gl webgl context
  */
-var scene = function (gl) {
+function Scene(gl) {
 	this.gl = gl;
-};
+}
 
 /**
  * Starts the scene loading process by setting up variables
  * and initializing the vertex and fragment shaders
  *
  */
-scene.prototype.Load = function () {
+Scene.prototype.Load = function (callback) {
 	var me = this;
 	var gl = me.gl;
 
-	me.models = [];
-	me.textures = [];
+	me.models = {};
+	me.textures = {};
 
 	// Setup vertex shader
 	var vertexShaderText =
@@ -127,7 +127,7 @@ scene.prototype.Load = function () {
 	};
 
 	// Setup default view and camera position
-	me.camera = new camera(
+	me.camera = new Camera(
 		vec3.fromValues(10, 0, 0),	// Position
 		vec3.fromValues(0, 0, 0),	// Look at point
 		vec3.fromValues(0, 1, 0)	// Up direction
@@ -144,17 +144,19 @@ scene.prototype.Load = function () {
 		0.1,						// Min view distance
 		100.0						// Max view distance
 	);
+
+	callback();
 };
 
 /**
  * Unloads the scene, setting relavant variables to null
  *
  */
-scene.prototype.Unload = function () {
+Scene.prototype.Unload = function (callback) {
 	this.Pause();
 
 	if(this.models) {
-		for (var i=0; i < this.models.length; i++) {
+		for (var i in this.models) {
 			this.models[i] = null;
 		}
 		this.models = null;
@@ -170,6 +172,8 @@ scene.prototype.Unload = function () {
 	if (this.projMatrix) { this.projMatrix = null; }
 	if (this.viewMatrix) { this.viewMatrix = null; }
 	if (this.nextFrameHandle) { this.nextFrameHandle = null; }
+
+	callback();
 };
 
 /**
@@ -179,7 +183,7 @@ scene.prototype.Unload = function () {
  *
  * @param Update funciton that accepts elapsed time (ms) as a parameter
  */
-scene.prototype.Begin = function (Update) {
+Scene.prototype.Begin = function (Update) {
 	var me = this;
 
 	// Start the update and render loops
@@ -200,7 +204,7 @@ scene.prototype.Begin = function (Update) {
  * Stops the animation frame loop
  *
  */
-scene.prototype.Pause = function () {
+Scene.prototype.Pause = function () {
 	if (this.nextFrameHandle) {
 		cancelAnimationFrame(this.nextFrameHandle);
 	}
@@ -214,7 +218,7 @@ scene.prototype.Pause = function () {
  * @param jsonURL URL pointing to the json file for a 3D model.
  * @param imgURL URL pointing to the texture image.
  */
-scene.prototype.AddModel = function (jsonURL, imgURL) {
+Scene.prototype.AddModel = function (id, jsonURL, imgURL, callback) {
 	var me = this;
 	var gl = me.gl;
 
@@ -230,17 +234,17 @@ scene.prototype.AddModel = function (jsonURL, imgURL) {
 				} else {
 
 					// Create model
-					me.models.push(new Model(
+					me.models[id] = new Model(
 						gl,
 						modelJSON.data.attributes.position.array,
 						modelJSON.data.index.array,
 						modelJSON.data.attributes.normal.array,
 						modelJSON.data.attributes.uv.array
-					));
+					)
 
 					// Create texture
 					var texture = me.gl.createTexture();
-					me.textures.push(texture);
+					me.textures[id] = texture;
 					gl.bindTexture(gl.TEXTURE_2D, texture);
 					gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -253,6 +257,8 @@ scene.prototype.AddModel = function (jsonURL, imgURL) {
 						texImg
 					);
 					gl.bindTexture(gl.TEXTURE_2D, null);
+
+					callback();
 				}
 			});
 		}
@@ -263,7 +269,7 @@ scene.prototype.AddModel = function (jsonURL, imgURL) {
  * Main render loop
  *
  */
-scene.prototype.Render = function () {
+Scene.prototype.Render = function () {
 	var me = this;
 	var gl = me.gl;
 
@@ -287,8 +293,7 @@ scene.prototype.Render = function () {
 	gl.uniform3f(me.program.uniforms.sunColor, 0.9, 0.9, 0.9);
 
 	// Draw meshes
-	for (var i = 0; i < me.models.length; i++) {
-
+	for (var i in me.models) {
 		// Bind texture
 		gl.bindTexture(gl.TEXTURE_2D, me.textures[i]);
 		gl.activeTexture(gl.TEXTURE0);
