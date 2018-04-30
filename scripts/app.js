@@ -1,6 +1,6 @@
 'use strict';
 
-var demo;
+var scene;
 
 var init = function () {
     var canvas = document.getElementById('webgl-surface');
@@ -14,14 +14,22 @@ var init = function () {
     	return;
     }
 
-    demo = new scene(gl);
-    demo.load(function (demoLoadError) {
-        if (demoLoadError) {
-            console.error(demoLoadError);
+
+    scene = new scene(gl);
+    scene.__load();
+    scene.__addModel('./src/tree.json','./img/texture.png');
+    scene.begin();
+
+/*
+    scene = new scene(gl);
+    scene.load(function (sceneLoadError) {
+        if (sceneLoadError) {
+            console.error(sceneLoadError);
         } else {
-            demo.begin();
+            scene.begin();
         }
     });
+*/
 };
 
 // TODO: globalize scene / camera / lighting functions

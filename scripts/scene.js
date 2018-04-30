@@ -1,10 +1,175 @@
 'use strict';
 
-// Adapted from: https://github.com/sessamekesh/IndigoCS-webgl-tutorials
+/**
+ * Adapted from: https://github.com/sessamekesh/IndigoCS-webgl-tutorials
+ * Starts the scene loading process
+ * use: gl = canvas.getContext('webgl'); to set webgl context
+ *
+ * @param gl webgl context
+ */
 var scene = function (gl) {
 	this.gl = gl;
+	this.models = [];
+	this.textures = [];
 };
 
+scene.prototype.__addModel = function (jsonURL, imgURL) {
+	var me = this;
+
+	loadJSONResource(jsonURL, function (modelErr, modelJSON) {
+		if (modelErr) {
+			console.error(modelErr);
+			return;
+		} else {
+			loadImage(imgURL, function (imgErr, texImg) {
+				if (imgErr) {
+					console.error(imgErr);
+					return;
+				} else {
+
+					// Create model
+					me.models.push(new Model(
+						me.gl,
+						modelJSON.data.attributes.position.array,
+						modelJSON.data.index.array,
+						modelJSON.data.attributes.normal.array,
+						modelJSON.data.attributes.uv.array
+					));
+
+					// Create texture
+					var texture = me.gl.createTexture();
+					me.textures.push(texture);
+					me.gl.bindTexture(me.gl.TEXTURE_2D, texture);
+					me.gl.pixelStorei(me.gl.UNPACK_FLIP_Y_WEBGL, true);
+					me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_WRAP_S, me.gl.CLAMP_TO_EDGE);
+					me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_WRAP_T, me.gl.CLAMP_TO_EDGE);
+					me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_MIN_FILTER, me.gl.LINEAR);
+					me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_MAG_FILTER, me.gl.LINEAR);
+					me.gl.texImage2D(
+						me.gl.TEXTURE_2D, 0, me.gl.RGBA, me.gl.RGBA,
+						me.gl.UNSIGNED_BYTE,
+						texImg
+					);
+					me.gl.bindTexture(me.gl.TEXTURE_2D, null);
+				}
+			});
+		}
+	});
+};
+
+scene.prototype.__load = function () {
+	var me = this;
+
+	var vertexShaderText =
+	[
+	'precision mediump float;',
+	'',
+	'attribute vec3 vertPosition;',
+	'attribute vec2 vertTexCoord;',
+	'attribute vec3 vertNormal;',
+	'',
+	'varying vec2 fragTexCoord;',
+	'varying vec3 fragNormal;',
+	'',
+	'uniform mat4 mWorld;',
+	'uniform mat4 mView;',
+	'uniform mat4 mProj;',
+	'',
+	'void main()',
+	'{',
+	'  fragTexCoord = vertTexCoord;',
+	'  fragNormal = (mWorld * vec4(vertNormal, 0.0)).xyz;',
+	'',
+	'  gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);',
+	'}'
+	].join('\n');
+
+	var fragmentShaderText =
+	[
+	'precision mediump float;',
+	'',
+	'struct DirectionalLight',
+	'{',
+	'	vec3 direction;',
+	'	vec3 color;',
+	'};',
+	'',
+	'varying vec2 fragTexCoord;',
+	'varying vec3 fragNormal;',
+	'',
+	'uniform vec3 ambientLightIntensity;',
+	'uniform DirectionalLight sun;',
+	'uniform sampler2D sampler;',
+	'',
+	'void main()',
+	'{',
+	'	vec3 surfaceNormal = normalize(fragNormal);',
+	'	vec3 normSunDir = normalize(sun.direction);',
+	'	vec4 texel = texture2D(sampler, fragTexCoord);',
+	'',
+	'	vec3 lightIntensity = ambientLightIntensity +',
+	'		sun.color * max(dot(fragNormal, normSunDir), 0.0);',
+	'',
+	'  gl_FragColor = vec4(texel.rgb * lightIntensity, texel.a);',
+	'}'
+	].join('\n');
+
+	// Create shaders
+	me.program = createShaderProgram (
+		me.gl,
+		vertexShaderText,
+		fragmentShaderText
+	);
+	if (me.program.error) {
+		console.error('program ' + me.program.error);
+		return;
+	}
+
+	me.program.uniforms = {
+		mProj: me.gl.getUniformLocation(me.program, 'mProj'),
+		mView: me.gl.getUniformLocation(me.program, 'mView'),
+		mWorld: me.gl.getUniformLocation(me.program, 'mWorld'),
+
+		ambientLightIntensity: me.gl.getUniformLocation(me.program, 'ambientLightIntensity'),
+		sunDirection: me.gl.getUniformLocation(me.program, 'sun.direction'),
+		sunColor: me.gl.getUniformLocation(me.program, 'sun.color'),
+	};
+
+	me.program.attribs = {
+		vPos: me.gl.getAttribLocation(me.program, 'vertPosition'),
+		vNorm: me.gl.getAttribLocation(me.program, 'vertNormal'),
+		vTexCoord: me.gl.getAttribLocation(me.program, 'vertTexCoord'),
+	};
+
+	// Set Logical values
+	me.camera = new Camera(
+		vec3.fromValues(10, 0, 0),	// Position
+		vec3.fromValues(0, 0, 0),	// Look at
+		vec3.fromValues(0, 1, 0)	// Up
+	);
+
+	me.projMatrix = mat4.create();
+	me.viewMatrix = mat4.create();
+
+	mat4.perspective(
+		me.projMatrix,
+		glMatrix.toRadian(45),
+		me.gl.canvas.clientWidth / me.gl.canvas.clientHeight,
+		0.1,
+		100.0
+	);
+};
+
+
+
+
+
+/**
+ * Loads a scene, adding all models, camera
+ * and lighting data
+ *
+ * @param callback
+ */
 scene.prototype.load = function (callback) {
 	console.log('loading scene...');
 
@@ -97,6 +262,11 @@ scene.prototype.load = function (callback) {
 		callback();
 	});
 };
+
+
+//
+// UNLOAD SCENE
+//
 scene.prototype.unload = function () {
 	console.log('unloading scene...');
 	for (var i=0; i < this.models.length; i++) {
@@ -131,7 +301,9 @@ scene.prototype.end = function () {
 	}
 };
 
-// Private functions
+//
+// UPDATE WORLD LOOP
+//
 scene.prototype._update = function (dt) {
 	var perSec = dt / 1000 * 2 * Math.PI;
 
@@ -143,6 +315,10 @@ scene.prototype._update = function (dt) {
 	// Update view based on camera
 	this.camera.GetViewMatrix(this.viewMatrix);
 };
+
+//
+// RENDER LOOP
+//
 scene.prototype._render = function () {
 	var gl = this.gl;
 
@@ -214,6 +390,10 @@ scene.prototype._render = function () {
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 	}
 };
+
+//
+// LOAD RESOURCES
+//
 scene.prototype._loadResources = function (callback) {
 	loadTextResource('./src/shader.vs.glsl', function (vsErr, vsText) {
 		if (vsErr) {
