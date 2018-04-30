@@ -16,16 +16,16 @@ scene.prototype.load = function (callback) {
 			return;
 		}
 
-		// Create model objects
+		// Import mesh data using the JSON output from the three.js blender exporter
 		me.models = [];
 		for (var i = 0; i < resources.models.length; i++) {
-			var mesh = resources.models[i].meshes[0];
+			var mesh = resources.models[i].data;
 			me.models.push(new Model(
 				me.gl,
-				mesh.vertices,
-				[].concat.apply([], mesh.faces),
-				mesh.normals,
-				mesh.texturecoords[0]
+				mesh.attributes.position.array,
+				mesh.index.array,
+				mesh.attributes.normal.array,
+				mesh.attributes.uv.array
 			));
 			console.log('	added', mesh.name, 'model');
 		}
@@ -78,9 +78,9 @@ scene.prototype.load = function (callback) {
 
 		// Logical values
 		me.camera = new Camera(
-			vec3.fromValues(0, -10, 0),	// Position
+			vec3.fromValues(10, 0, 0),	// Position
 			vec3.fromValues(0, 0, 0),	// Look at
-			vec3.fromValues(0, 0, 1)	// Up
+			vec3.fromValues(0, 1, 0)	// Up
 		);
 
 		me.projMatrix = mat4.create();
@@ -223,31 +223,19 @@ scene.prototype._loadResources = function (callback) {
 				if (fsErr) {
 					callback(fsErr);
 				} else {
-					loadJSONResource('./src/leaf.json', function (model1Err, leafJSON) {
-						if (model1Err) {
-							callback(model1Err);
+					loadJSONResource('./src/tree.json', function (modelErr, modelJSON) {
+						if (modelErr) {
+							callback(modelErr);
 						} else {
-							loadJSONResource('./src/tree1.json', function (model2Err, tree1JSON) {
-								if (model2Err) {
-									callback(model2Err);
+							loadImage('./img/texture.png', function (imgErr, texImg) {
+								if (imgErr) {
+									callback(imgErr);
 								} else {
-									loadImage('./img/texture.png', function (img1Err, tex1Img) {
-										if (img1Err) {
-											callback(img1Err);
-										} else {
-											loadImage('./img/texture2.png', function(img2Err, tex2Img) {
-												if (img2Err) {
-													callback(img2Err)
-												} else {
-													callback(null, {
-														vsText:vsText,
-														fsText:fsText,
-														models:[leafJSON, tree1JSON],
-														texImages:[tex1Img, tex2Img]
-													});
-												}
-											});
-										}
+									callback(null, {
+										vsText:vsText,
+										fsText:fsText,
+										models:[modelJSON],
+										texImages:[texImg]
 									});
 								}
 							});
