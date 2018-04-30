@@ -2,68 +2,29 @@
 
 /**
  * Adapted from: https://github.com/sessamekesh/IndigoCS-webgl-tutorials
- * Starts the scene loading process
- * use: gl = canvas.getContext('webgl'); to set webgl context
+ * A scene contains models, a camera, and a light source.
+ * It contains functions for adding and removing models, moving
+ * them around, and interacting with the camera and light.
  *
  * @param gl webgl context
  */
 var scene = function (gl) {
 	this.gl = gl;
-	this.models = [];
-	this.textures = [];
 };
 
-//
-// TODO: each model should also be passed an update function
-// that will be called in the update loop
-//
-scene.prototype.__addModel = function (jsonURL, imgURL) {
+/**
+ * Starts the scene loading process by setting up variables
+ * and initializing the vertex and fragment shaders
+ *
+ */
+scene.prototype.Load = function () {
 	var me = this;
+	var gl = me.gl;
 
-	loadJSONResource(jsonURL, function (modelErr, modelJSON) {
-		if (modelErr) {
-			console.error(modelErr);
-			return;
-		} else {
-			loadImage(imgURL, function (imgErr, texImg) {
-				if (imgErr) {
-					console.error(imgErr);
-					return;
-				} else {
+	me.models = [];
+	me.textures = [];
 
-					// Create model
-					me.models.push(new Model(
-						me.gl,
-						modelJSON.data.attributes.position.array,
-						modelJSON.data.index.array,
-						modelJSON.data.attributes.normal.array,
-						modelJSON.data.attributes.uv.array
-					));
-
-					// Create texture
-					var texture = me.gl.createTexture();
-					me.textures.push(texture);
-					me.gl.bindTexture(me.gl.TEXTURE_2D, texture);
-					me.gl.pixelStorei(me.gl.UNPACK_FLIP_Y_WEBGL, true);
-					me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_WRAP_S, me.gl.CLAMP_TO_EDGE);
-					me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_WRAP_T, me.gl.CLAMP_TO_EDGE);
-					me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_MIN_FILTER, me.gl.LINEAR);
-					me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_MAG_FILTER, me.gl.LINEAR);
-					me.gl.texImage2D(
-						me.gl.TEXTURE_2D, 0, me.gl.RGBA, me.gl.RGBA,
-						me.gl.UNSIGNED_BYTE,
-						texImg
-					);
-					me.gl.bindTexture(me.gl.TEXTURE_2D, null);
-				}
-			});
-		}
-	});
-};
-
-scene.prototype.__load = function () {
-	var me = this;
-
+	// Setup vertex shader
 	var vertexShaderText =
 	[
 	'precision mediump float;',
@@ -87,7 +48,15 @@ scene.prototype.__load = function () {
 	'  gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);',
 	'}'
 	].join('\n');
+	var vs = gl.createShader(gl.VERTEX_SHADER);
+	gl.shaderSource(vs, vertexShaderText);
+	gl.compileShader(vs);
+	if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+		console.error('Error compiling vertex shader: ' + gl.getShaderInfoLog(vs));
+		return;
+	}
 
+	// Setup fragment shader
 	var fragmentShaderText =
 	[
 	'precision mediump float;',
@@ -117,214 +86,186 @@ scene.prototype.__load = function () {
 	'  gl_FragColor = vec4(texel.rgb * lightIntensity, texel.a);',
 	'}'
 	].join('\n');
-
-	// Create shaders
-	me.program = createShaderProgram (
-		me.gl,
-		vertexShaderText,
-		fragmentShaderText
-	);
-	if (me.program.error) {
-		console.error('program ' + me.program.error);
+	var fs = gl.createShader(gl.FRAGMENT_SHADER);
+	gl.shaderSource(fs, fragmentShaderText);
+	gl.compileShader(fs);
+	if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+		console.error('Error compiling fragment shader: ' + gl.getShaderInfoLog(fs));
 		return;
 	}
 
-	me.program.uniforms = {
-		mProj: me.gl.getUniformLocation(me.program, 'mProj'),
-		mView: me.gl.getUniformLocation(me.program, 'mView'),
-		mWorld: me.gl.getUniformLocation(me.program, 'mWorld'),
+	// Setup webgl program from vertex and fragment shaders
+	var program = gl.createProgram();
+	gl.attachShader(program, vs);
+	gl.attachShader(program, fs);
+	gl.linkProgram(program);
+	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+		console.error('Error linking program: ' + gl.getProgramInfoLog(program));
+		return;
+	}
+	gl.validateProgram(program);
+	if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
+		console.error('Error validating program: ' + gl.getProgramInfoLog(program));
+		return;
+	}
+	me.program = program;
 
-		ambientLightIntensity: me.gl.getUniformLocation(me.program, 'ambientLightIntensity'),
-		sunDirection: me.gl.getUniformLocation(me.program, 'sun.direction'),
-		sunColor: me.gl.getUniformLocation(me.program, 'sun.color'),
+	me.program.uniforms = {
+		mProj: gl.getUniformLocation(me.program, 'mProj'),
+		mView: gl.getUniformLocation(me.program, 'mView'),
+		mWorld: gl.getUniformLocation(me.program, 'mWorld'),
+
+		ambientLightIntensity: gl.getUniformLocation(me.program, 'ambientLightIntensity'),
+		sunDirection: gl.getUniformLocation(me.program, 'sun.direction'),
+		sunColor: gl.getUniformLocation(me.program, 'sun.color'),
 	};
 
 	me.program.attribs = {
-		vPos: me.gl.getAttribLocation(me.program, 'vertPosition'),
-		vNorm: me.gl.getAttribLocation(me.program, 'vertNormal'),
-		vTexCoord: me.gl.getAttribLocation(me.program, 'vertTexCoord'),
+		vPos: gl.getAttribLocation(me.program, 'vertPosition'),
+		vNorm: gl.getAttribLocation(me.program, 'vertNormal'),
+		vTexCoord: gl.getAttribLocation(me.program, 'vertTexCoord'),
 	};
 
-	// Set Logical values
-	me.camera = new Camera(
+	// Setup default view and camera position
+	me.camera = new camera(
 		vec3.fromValues(10, 0, 0),	// Position
-		vec3.fromValues(0, 0, 0),	// Look at
-		vec3.fromValues(0, 1, 0)	// Up
+		vec3.fromValues(0, 0, 0),	// Look at point
+		vec3.fromValues(0, 1, 0)	// Up direction
 	);
+
+	me.viewMatrix = mat4.create();
+	me.camera.getViewMatrix(me.viewMatrix);
 
 	me.projMatrix = mat4.create();
-	me.viewMatrix = mat4.create();
-
 	mat4.perspective(
 		me.projMatrix,
-		glMatrix.toRadian(45),
-		me.gl.canvas.clientWidth / me.gl.canvas.clientHeight,
-		0.1,
-		100.0
+		glMatrix.toRadian(45),		// Field of view
+		gl.canvas.clientWidth / gl.canvas.clientHeight,
+		0.1,						// Min view distance
+		100.0						// Max view distance
 	);
 };
 
+/**
+ * Unloads the scene, setting relavant variables to null
+ *
+ */
+scene.prototype.Unload = function () {
+	this.Pause();
 
-
-
+	if(this.models) {
+		for (var i=0; i < this.models.length; i++) {
+			this.models[i] = null;
+		}
+		this.models = null;
+	}
+	if(this.models) {
+		for (var i=0; i < this.textures.length; i++) {
+			this.textures[i] = null;
+		}
+		this.textures = null
+	}
+	if (this.camera) { this.camera = null; }
+	if (this.program) { this.program = null; }
+	if (this.projMatrix) { this.projMatrix = null; }
+	if (this.viewMatrix) { this.viewMatrix = null; }
+	if (this.nextFrameHandle) { this.nextFrameHandle = null; }
+};
 
 /**
- * Loads a scene, adding all models, camera
- * and lighting data
+ * A scene contains models, a camera, and a light source.
+ * It contains functions for adding and removing models, moving
+ * them around, and interacting with the camera and light.
  *
- * @param callback
+ * @param Update funciton that accepts elapsed time (ms) as a parameter
  */
-scene.prototype.load = function (callback) {
-	console.log('loading scene...');
-
+scene.prototype.Begin = function (Update) {
 	var me = this;
 
-	me._loadResources(function(err, resources) {
-		if (err) {
-			callback(err);
-			return;
-		}
-
-		// Import mesh data using the JSON output from the three.js blender exporter
-		me.models = [];
-		for (var i = 0; i < resources.models.length; i++) {
-			var mesh = resources.models[i].data;
-			me.models.push(new Model(
-				me.gl,
-				mesh.attributes.position.array,
-				mesh.index.array,
-				mesh.attributes.normal.array,
-				mesh.attributes.uv.array
-			));
-			console.log('	added', mesh.name, 'model');
-		}
-
-		// Create shaders
-		me.program = createShaderProgram (
-			me.gl,
-			resources.vsText,
-			resources.fsText
-		);
-		if (me.program.error) {
-			callback('program ' + me.program.error);
-			return;
-		}
-
-		me.program.uniforms = {
-			mProj: me.gl.getUniformLocation(me.program, 'mProj'),
-			mView: me.gl.getUniformLocation(me.program, 'mView'),
-			mWorld: me.gl.getUniformLocation(me.program, 'mWorld'),
-
-			ambientLightIntensity: me.gl.getUniformLocation(me.program, 'ambientLightIntensity'),
-		 	sunDirection: me.gl.getUniformLocation(me.program, 'sun.direction'),
-	 		sunColor: me.gl.getUniformLocation(me.program, 'sun.color'),
-		};
-
-		me.program.attribs = {
-			vPos: me.gl.getAttribLocation(me.program, 'vertPosition'),
-			vNorm: me.gl.getAttribLocation(me.program, 'vertNormal'),
-			vTexCoord: me.gl.getAttribLocation(me.program, 'vertTexCoord'),
-		};
-
-		// Create textures
-		me.textures = [];
-		for (var i=0; i < resources.texImages.length; i++) {
-			me.textures.push(me.gl.createTexture());
-
-			me.gl.bindTexture(me.gl.TEXTURE_2D, me.textures[i]);
-			me.gl.pixelStorei(me.gl.UNPACK_FLIP_Y_WEBGL, true);
-			me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_WRAP_S, me.gl.CLAMP_TO_EDGE);
-			me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_WRAP_T, me.gl.CLAMP_TO_EDGE);
-			me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_MIN_FILTER, me.gl.LINEAR);
-			me.gl.texParameteri(me.gl.TEXTURE_2D, me.gl.TEXTURE_MAG_FILTER, me.gl.LINEAR);
-			me.gl.texImage2D(
-				me.gl.TEXTURE_2D, 0, me.gl.RGBA, me.gl.RGBA,
-				me.gl.UNSIGNED_BYTE,
-				resources.texImages[i]
-			);
-			me.gl.bindTexture(me.gl.TEXTURE_2D, null);
-		}
-
-		// Logical values
-		me.camera = new Camera(
-			vec3.fromValues(10, 0, 0),	// Position
-			vec3.fromValues(0, 0, 0),	// Look at
-			vec3.fromValues(0, 1, 0)	// Up
-		);
-
-		me.projMatrix = mat4.create();
-		me.viewMatrix = mat4.create();
-
-		mat4.perspective(
-			me.projMatrix,
-			glMatrix.toRadian(45),
-			me.gl.canvas.clientWidth / me.gl.canvas.clientHeight,
-			0.1,
-			100.0
-		);
-
-		callback();
-	});
-};
-
-
-//
-// UNLOAD SCENE
-//
-scene.prototype.unload = function () {
-	console.log('unloading scene...');
-	for (var i=0; i < this.models.length; i++) {
-		models[i] = null;
-	}
-	this.program = null;
-	this.models = null;
-};
-scene.prototype.begin = function () {
-	console.log('begining scene...');
-
-	var me = this;
-
-	// Render Loop
+	// Start the update and render loops
 	var previousFrame = performance.now();
 	var dt = 0;
 	var loop = function (currentFrameTime) {
 		dt = currentFrameTime - previousFrame;
-		me._update(dt);
+		Update(dt);
 		previousFrame = currentFrameTime;
 
-		me._render();
+		me.Render();
 		me.nextFrameHandle = requestAnimationFrame(loop);
 	};
 	me.nextFrameHandle = requestAnimationFrame(loop);
 };
-scene.prototype.end = function () {
-	console.log('ending scene...');
 
+/**
+ * Stops the animation frame loop
+ *
+ */
+scene.prototype.Pause = function () {
 	if (this.nextFrameHandle) {
 		cancelAnimationFrame(this.nextFrameHandle);
 	}
 };
 
-//
-// UPDATE WORLD LOOP
-//
-scene.prototype._update = function (dt) {
-	var perSec = dt / 1000 * 2 * Math.PI;
+/**
+ * Adds a model to the scene. The json file must be formated
+ * like the three.js blender exporter. Also, each model must include
+ * a texture image.
+ *
+ * @param jsonURL URL pointing to the json file for a 3D model.
+ * @param imgURL URL pointing to the texture image.
+ */
+scene.prototype.AddModel = function (jsonURL, imgURL) {
+	var me = this;
+	var gl = me.gl;
 
+	loadJSONResource(jsonURL, function (modelErr, modelJSON) {
+		if (modelErr) {
+			console.error(modelErr);
+			return;
+		} else {
+			loadImage(imgURL, function (imgErr, texImg) {
+				if (imgErr) {
+					console.error(imgErr);
+					return;
+				} else {
 
-	// Move camera up
-	this.camera.moveUp(0.005 * perSec);
+					// Create model
+					me.models.push(new Model(
+						gl,
+						modelJSON.data.attributes.position.array,
+						modelJSON.data.index.array,
+						modelJSON.data.attributes.normal.array,
+						modelJSON.data.attributes.uv.array
+					));
 
-
-	// Update view based on camera
-	this.camera.GetViewMatrix(this.viewMatrix);
+					// Create texture
+					var texture = me.gl.createTexture();
+					me.textures.push(texture);
+					gl.bindTexture(gl.TEXTURE_2D, texture);
+					gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+					gl.texImage2D(
+						gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+						gl.UNSIGNED_BYTE,
+						texImg
+					);
+					gl.bindTexture(gl.TEXTURE_2D, null);
+				}
+			});
+		}
+	});
 };
 
-//
-// RENDER LOOP
-//
-scene.prototype._render = function () {
-	var gl = this.gl;
+/**
+ * Main render loop
+ *
+ */
+scene.prototype.Render = function () {
+	var me = this;
+	var gl = me.gl;
 
 	// Clear back buffer, set per-frame uniforms
 	gl.enable(gl.DEPTH_TEST);
@@ -337,96 +278,60 @@ scene.prototype._render = function () {
 	gl.clearColor(0, 0, 0, 0.3);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
-	gl.useProgram(this.program);
+	gl.useProgram(me.program);
 
-	gl.uniformMatrix4fv(this.program.uniforms.mProj, gl.FALSE, this.projMatrix);
-	gl.uniformMatrix4fv(this.program.uniforms.mView, gl.FALSE, this.viewMatrix);
-	gl.uniform3f(this.program.uniforms.ambientLightIntensity, 0.2, 0.2, 0.2);
-	gl.uniform3f(this.program.uniforms.sunDirection, 3.0, 4.0, -2.0);
-	gl.uniform3f(this.program.uniforms.sunColor, 0.9, 0.9, 0.9);
+	gl.uniformMatrix4fv(me.program.uniforms.mProj, gl.FALSE, me.projMatrix);
+	gl.uniformMatrix4fv(me.program.uniforms.mView, gl.FALSE, me.viewMatrix);
+	gl.uniform3f(me.program.uniforms.ambientLightIntensity, 0.2, 0.2, 0.2);
+	gl.uniform3f(me.program.uniforms.sunDirection, 3.0, 4.0, -2.0);
+	gl.uniform3f(me.program.uniforms.sunColor, 0.9, 0.9, 0.9);
 
 	// Draw meshes
-	for (var i = 0; i < this.models.length; i++) {
+	for (var i = 0; i < me.models.length; i++) {
 
 		// Bind texture
-		gl.bindTexture(gl.TEXTURE_2D, this.textures[i]);
+		gl.bindTexture(gl.TEXTURE_2D, me.textures[i]);
 		gl.activeTexture(gl.TEXTURE0);
 
 		// Per object uniforms
 		gl.uniformMatrix4fv(
-			this.program.uniforms.mWorld,
+			me.program.uniforms.mWorld,
 			gl.FALSE,
-			this.models[i].world
+			me.models[i].world
 		);
 
 		// Set attributes
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.models[i].vbo);
+		gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].vbo);
 		gl.vertexAttribPointer(
-			this.program.attribs.vPos,
+			me.program.attribs.vPos,
 			3, gl.FLOAT, gl.FALSE,
 			3 * Float32Array.BYTES_PER_ELEMENT,
 			0
 		);
-		gl.enableVertexAttribArray(this.program.attribs.vPos);
+		gl.enableVertexAttribArray(me.program.attribs.vPos);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.models[i].tbo);
 		gl.vertexAttribPointer(
-			this.program.attribs.vTexCoord,
+			me.program.attribs.vTexCoord,
 			2, gl.FLOAT, gl.FALSE,
 			2 * Float32Array.BYTES_PER_ELEMENT,
 			0
 		);
-		gl.enableVertexAttribArray(this.program.attribs.vTexCoord)
+		gl.enableVertexAttribArray(me.program.attribs.vTexCoord)
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.models[i].nbo);
+		gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].nbo);
 		gl.vertexAttribPointer(
-			this.program.attribs.vNorm,
+			me.program.attribs.vNorm,
 			3, gl.FLOAT, gl.FALSE,
 			3 * Float32Array.BYTES_PER_ELEMENT,
 			0
 		);
-		gl.enableVertexAttribArray(this.program.attribs.vNorm);
+		gl.enableVertexAttribArray(me.program.attribs.vNorm);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.models[i].ibo);
-		gl.drawElements(gl.TRIANGLES, this.models[i].nPoints, gl.UNSIGNED_SHORT, 0);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, me.models[i].ibo);
+		gl.drawElements(gl.TRIANGLES, me.models[i].nPoints, gl.UNSIGNED_SHORT, 0);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 	}
-};
-
-//
-// LOAD RESOURCES
-//
-scene.prototype._loadResources = function (callback) {
-	loadTextResource('./src/shader.vs.glsl', function (vsErr, vsText) {
-		if (vsErr) {
-			callback(vsErr);
-		} else {
-			loadTextResource('./src/shader.fs.glsl', function (fsErr, fsText) {
-				if (fsErr) {
-					callback(fsErr);
-				} else {
-					loadJSONResource('./src/tree.json', function (modelErr, modelJSON) {
-						if (modelErr) {
-							callback(modelErr);
-						} else {
-							loadImage('./img/texture.png', function (imgErr, texImg) {
-								if (imgErr) {
-									callback(imgErr);
-								} else {
-									callback(null, {
-										vsText:vsText,
-										fsText:fsText,
-										models:[modelJSON],
-										texImages:[texImg]
-									});
-								}
-							});
-						}
-					});
-				}
-			});
-		}
-	});
 };

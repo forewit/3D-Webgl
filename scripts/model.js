@@ -1,6 +1,11 @@
 
 'use strict';
 
+//
+// Original source:
+// https://github.com/sessamekesh/IndigoCS-webgl-tutorials
+//
+
 var Model = function (gl, vertices, indices, normals, texCoords) {
     this.vbo = gl.createBuffer();
     this.ibo = gl.createBuffer();
@@ -25,9 +30,12 @@ var Model = function (gl, vertices, indices, normals, texCoords) {
 	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 };
+Model
+
+// TODO: add model position and move functions
 
 
-var Camera = function (position, lookAt, up) {
+var camera = function (position, lookAt, up) {
 	this.forward = vec3.create();
 	this.up = vec3.create();
 	this.right = vec3.create();
@@ -42,36 +50,35 @@ var Camera = function (position, lookAt, up) {
 	vec3.normalize(this.right, this.right);
 	vec3.normalize(this.up, this.up);
 };
-Camera.prototype.GetViewMatrix = function (out) {
+camera.prototype.getViewMatrix = function (out) {
 	var lookAt = vec3.create();
 	vec3.add(lookAt, this.position, this.forward);
 	mat4.lookAt(out, this.position, lookAt, this.up);
 	return out;
 };
-Camera.prototype.rotateUp = function (rad) {
+camera.prototype.rotateUp = function (rad) {
 	var upMatrix = mat4.create();
 	mat4.rotate(upMatrix, upMatrix, rad, vec3.fromValues(1, 0, 0));
 	vec3.transformMat4(this.forward, this.forward, upMatrix);
-	this._realign();
+	this.realign();
 };
-Camera.prototype.rotateRight = function (rad) {
+camera.prototype.rotateRight = function (rad) {
 	var rightMatrix = mat4.create();
 	mat4.rotate(rightMatrix, rightMatrix, rad, vec3.fromValues(0, 0, 1));
 	vec3.transformMat4(this.forward, this.forward, rightMatrix);
-	this._realign();
+	this.realign();
 };
-Camera.prototype.moveForward = function (dist) {
+camera.prototype.moveForward = function (dist) {
 	vec3.scaleAndAdd(this.position, this.position, this.forward, dist);
 };
-Camera.prototype.moveRight = function (dist) {
+camera.prototype.moveRight = function (dist) {
 	vec3.scaleAndAdd(this.position, this.position, this.right, dist);
 };
-Camera.prototype.moveUp = function (dist) {
+camera.prototype.moveUp = function (dist) {
 	vec3.scaleAndAdd(this.position, this.position, this.up, dist);
 };
 
-// Private functions
-Camera.prototype._realign = function() {
+camera.prototype.realign = function() {
 	vec3.cross(this.right, this.forward, this.up);
 	vec3.cross(this.up, this.right, this.forward);
 

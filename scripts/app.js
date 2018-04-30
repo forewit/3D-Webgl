@@ -14,23 +14,14 @@ var init = function () {
     	return;
     }
 
-
     scene = new scene(gl);
-    scene.__load();
-    scene.__addModel('./src/tree.json','./img/texture.png');
-    scene.begin();
+    scene.Load();
+    scene.AddModel('./src/tree.json','./img/texture.png');
 
-/*
-    scene = new scene(gl);
-    scene.load(function (sceneLoadError) {
-        if (sceneLoadError) {
-            console.error(sceneLoadError);
-        } else {
-            scene.begin();
-        }
-    });
-*/
+    // Update loop
+    var loop = function(dt) {
+        var perSec = dt / 1000 * 2 * Math.PI;
+
+    };
+    scene.Begin(loop);
 };
-
-// TODO: globalize scene / camera / lighting functions
-// TODO: add "load new model function"
