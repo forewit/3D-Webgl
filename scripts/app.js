@@ -23,3 +23,6 @@ var init = function () {
         }
     });
 };
+
+// TODO: globalize scene / camera / lighting functions
+// TODO: add "load new model function"
