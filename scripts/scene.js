@@ -222,16 +222,17 @@ Scene.prototype.AddModel = function (id, jsonURL, imgURL, callback) {
 	var me = this;
 	var gl = me.gl;
 
-	loadJSONResource(jsonURL, function (modelErr, modelJSON) {
-		if (modelErr) {
-			console.error(modelErr);
-			return;
-		} else {
-			loadImage(imgURL, function (imgErr, texImg) {
-				if (imgErr) {
-					console.error(imgErr);
-					return;
-				} else {
+	// Load json
+	var request = new XMLHttpRequest();
+	request.open('GET', jsonURL, true);
+	request.onload = function () {
+		if (request.status > 199 && request.status < 300) {
+			try {
+				var modelJSON = JSON.parse(request.responseText);
+
+				// Load image
+				var image = new Image();
+				image.onload = function () {
 
 					// Create model
 					me.models[id] = new Model(
@@ -241,7 +242,6 @@ Scene.prototype.AddModel = function (id, jsonURL, imgURL, callback) {
 						modelJSON.data.attributes.normal.array,
 						modelJSON.data.attributes.uv.array
 					)
-
 					// Create texture
 					var texture = me.gl.createTexture();
 					me.textures[id] = texture;
@@ -254,15 +254,25 @@ Scene.prototype.AddModel = function (id, jsonURL, imgURL, callback) {
 					gl.texImage2D(
 						gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
 						gl.UNSIGNED_BYTE,
-						texImg
+						image
 					);
 					gl.bindTexture(gl.TEXTURE_2D, null);
 
 					callback();
-				}
-			});
+				};
+				image.src = imgURL;
+			} catch (e) {
+				// Failed to load image or parse json
+				console.error(e);
+				return;
+			}
+		} else {
+			// Failed to load json
+			console.error(request.status);
+			return;
 		}
-	});
+	};
+	request.send();
 };
 
 /**
@@ -339,4 +349,147 @@ Scene.prototype.Render = function () {
 		gl.drawElements(gl.TRIANGLES, me.models[i].nPoints, gl.UNSIGNED_SHORT, 0);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 	}
+};
+
+//
+// Original source:
+// https://github.com/sessamekesh/IndigoCS-webgl-tutorials
+//
+
+/**
+ * Create model buffers and bind data from the model json.
+ *
+ * @param gl webgl getContext
+ * @param vertices array of model verticies [x, y, z, x, y, z, ...]
+ * @param indices array listing triangle face indices
+ * @param normals array of face normals
+ * @param texCoords array of coordinates mapping vertices to the texture image
+ */
+function Model(gl, vertices, indices, normals, texCoords) {
+    this.vbo = gl.createBuffer();
+    this.ibo = gl.createBuffer();
+    this.nbo = gl.createBuffer();
+    this.tbo = gl.createBuffer();
+    this.nPoints = indices.length;
+
+    this.world = mat4.create()
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.tbo);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, this.nbo);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+}
+
+/**
+ * Position a model by translating its world matrix based
+ * on the origin.
+ *
+ * @param {vec3} position target location [x, y, z]
+ */
+Model.prototype.position = function (position) {
+    var origin = mat4.create();
+    mat4.translate(this.world, origin, position);
+};
+
+/**
+ * Create a camera to manipulate the viewMatrix
+ *
+ * @param {vec3} position Camera location [x, y, z]
+ * @param {vec3} lookAt Where camera is pointed [x, y, z]
+ * @param {vec3} up	vector pointing in up direction
+ */
+function Camera(position, lookAt, up) {
+	this.forward = vec3.create();
+	this.up = vec3.create();
+	this.right = vec3.create();
+
+	this.position = position;
+
+	vec3.subtract(this.forward, lookAt, this.position);
+	vec3.cross(this.right, this.forward, up);
+	vec3.cross(this.up, this.right, this.forward);
+
+	vec3.normalize(this.forward, this.forward);
+	vec3.normalize(this.right, this.right);
+	vec3.normalize(this.up, this.up);
+}
+/**
+ * Returns the view matrix created by the camera
+ *
+ * @param out the recieving matrix
+ * @returns {mat4} out
+ */
+Camera.prototype.getViewMatrix = function (out) {
+	var lookAt = vec3.create();
+	vec3.add(lookAt, this.position, this.forward);
+	mat4.lookAt(out, this.position, lookAt, this.up);
+	return out;
+};
+/**
+ * Rotates the camera up
+ *
+ * @param rad radians to rotate up
+ */
+Camera.prototype.rotateUp = function (rad) {
+	var upMatrix = mat4.create();
+	mat4.rotate(upMatrix, upMatrix, rad, vec3.fromValues(1, 0, 0));
+	vec3.transformMat4(this.forward, this.forward, upMatrix);
+	this.realign();
+};
+/**
+ * Rotates the camera right
+ *
+ * @param rad radians to rotate right
+ */
+Camera.prototype.rotateRight = function (rad) {
+	var rightMatrix = mat4.create();
+	mat4.rotate(rightMatrix, rightMatrix, rad, vec3.fromValues(0, 0, 1));
+	vec3.transformMat4(this.forward, this.forward, rightMatrix);
+	this.realign();
+};
+/**
+ * Moves the camera forward
+ *
+ * @param dist distance to move forward
+ */
+Camera.prototype.moveForward = function (dist) {
+	vec3.scaleAndAdd(this.position, this.position, this.forward, dist);
+};
+/**
+ * Moves the camera right
+ *
+ * @param dist distance to move right
+ */
+Camera.prototype.moveRight = function (dist) {
+	vec3.scaleAndAdd(this.position, this.position, this.right, dist);
+};
+/**
+ * Moves the camera up
+ *
+ * @param dist distance to move up
+ */
+Camera.prototype.moveUp = function (dist) {
+	vec3.scaleAndAdd(this.position, this.position, this.up, dist);
+};
+/**
+ * Realigns the camera, normalizing the directional values
+ *
+ */
+Camera.prototype.realign = function() {
+	vec3.cross(this.right, this.forward, this.up);
+	vec3.cross(this.up, this.right, this.forward);
+
+	vec3.normalize(this.forward, this.forward);
+	vec3.normalize(this.right, this.right);
+	vec3.normalize(this.up, this.up);
 };

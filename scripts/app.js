@@ -20,7 +20,7 @@ var init = function () {
     scene.Load( function (){
         scene.AddModel('tree', './src/tree.json', './img/texture.png', function (){
 
-            scene.models.tree.position([0,0,1]);
+            scene.models.tree.position([0,0,2]);
 
             var loop = function(dt) {
                 var perSec = dt / 1000 * 2 * Math.PI;
