@@ -1,4 +1,4 @@
-# Playground site for creating gl-scene
+# Playground site for creating GL-Scene
 
 Gl-Scene is a simple library for creating interactive webgl 3D scenes
 with models, cameras, and lighting.
