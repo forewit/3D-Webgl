@@ -20,7 +20,7 @@ var init = function () {
         scene.AddModel('tree', './models/tree.json', './models/tree.png', function (){
 
             // Pre-loop setup
-            scene.models.tree.position([0,0,2]);
+            scene.models.tree.position([0,0,0]);
 
             // Update loop
             var loop = function(dt) {

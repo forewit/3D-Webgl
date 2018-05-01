@@ -7,7 +7,7 @@
  * Requires glMatrix: https://github.com/toji/gl-matrix
  */
 
-/* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
+/* Copyright (c) 2018, Marc Anderson.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,18 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE. */
 
+/* GLOBAL COORDINATES (SAME AS WEBGL):
+           +y
+            |    -z (in)
+            |   /
+            | /
+  -x - - - - - - - - +x
+           /|
+         /  |
+(out) +z    |
+           -y
+*/
+
 /**
  * A scene contains models, a camera, and phong lighting.
  * It contains functions for adding and removing models, moving
@@ -41,16 +53,41 @@ var Scene = function (gl) {
 }
 
 /**
- * Starts the scene loading process by setting up variables
- * and initializing the vertex and fragment shaders
+ * Asynchronous function that starts the scene loading process
+ * by setting up variables and initializing the vertex and
+ * fragment shaders.
  *
  */
 Scene.prototype.Load = function (callback) {
 	var me = this;
 	var gl = me.gl;
 
+	// Initialize models and textures
 	me.models = {};
 	me.textures = {};
+
+	// Initialize default view and camera position
+	me.camera = new Camera(					/********* DEFAULTS *********/
+		vec3.fromValues(0, 0, 10),			// CAMERA POSITION
+		vec3.fromValues(0, 0, 0),			// CAMERA LOOK AT
+		vec3.fromValues(0, 1, 0)			// CAMERA UP DIRECTION
+	);
+	me.viewMatrix = mat4.create();
+	me.camera.getViewMatrix(me.viewMatrix);
+	me.projMatrix = mat4.create();
+	mat4.perspective(
+		me.projMatrix,
+		glMatrix.toRadian(45),				// FIELD OF VIEW
+		gl.canvas.clientWidth / gl.canvas.clientHeight,
+		0.1,								// MIN VIEW DISTANCE
+		100.0								// MAX VIEW DISTANCE
+	);
+	// Initialize default sun and ambient light
+	me.ambientIntensity = [0.1, 0.1, 0.1];	// AMBIENT INTENSITY: RGB
+	me.sun = {
+		intensity: [0.9, 0.9, 0.9],			// SUN INTENSITY: RGB
+		direction: [1, 1, 1]				// SUN DIRECTION: XYZ -> ORIGIN
+	};
 
 	// Setup vertex shader
 	var vertexShaderText =
@@ -92,13 +129,13 @@ Scene.prototype.Load = function (callback) {
 	'struct DirectionalLight',
 	'{',
 	'	vec3 direction;',
-	'	vec3 color;',
+	'	vec3 intensity;',
 	'};',
 	'',
 	'varying vec2 fragTexCoord;',
 	'varying vec3 fragNormal;',
 	'',
-	'uniform vec3 ambientLightIntensity;',
+	'uniform vec3 ambientIntensity;',
 	'uniform DirectionalLight sun;',
 	'uniform sampler2D sampler;',
 	'',
@@ -108,8 +145,8 @@ Scene.prototype.Load = function (callback) {
 	'	vec3 normSunDir = normalize(sun.direction);',
 	'	vec4 texel = texture2D(sampler, fragTexCoord);',
 	'',
-	'	vec3 lightIntensity = ambientLightIntensity +',
-	'		sun.color * max(dot(fragNormal, normSunDir), 0.0);',
+	'	vec3 lightIntensity = ambientIntensity +',
+	'		sun.intensity * max(dot(fragNormal, normSunDir), 0.0);',
 	'',
 	'  gl_FragColor = vec4(texel.rgb * lightIntensity, texel.a);',
 	'}'
@@ -142,9 +179,9 @@ Scene.prototype.Load = function (callback) {
 		mView: gl.getUniformLocation(me.program, 'mView'),
 		mWorld: gl.getUniformLocation(me.program, 'mWorld'),
 
-		ambientLightIntensity: gl.getUniformLocation(me.program, 'ambientLightIntensity'),
+		ambientIntensity: gl.getUniformLocation(me.program, 'ambientIntensity'),
 		sunDirection: gl.getUniformLocation(me.program, 'sun.direction'),
-		sunColor: gl.getUniformLocation(me.program, 'sun.color'),
+		sunIntensity: gl.getUniformLocation(me.program, 'sun.intensity'),
 	};
 	me.program.attribs = {
 		vPos: gl.getAttribLocation(me.program, 'vertPosition'),
@@ -152,30 +189,12 @@ Scene.prototype.Load = function (callback) {
 		vTexCoord: gl.getAttribLocation(me.program, 'vertTexCoord'),
 	};
 
-	// Setup default view and camera position
-	me.camera = new Camera(
-		vec3.fromValues(10, 0, 0),	// Position
-		vec3.fromValues(0, 0, 0),	// Look at point
-		vec3.fromValues(0, 1, 0)	// Up direction
-	);
-
-	me.viewMatrix = mat4.create();
-	me.camera.getViewMatrix(me.viewMatrix);
-
-	me.projMatrix = mat4.create();
-	mat4.perspective(
-		me.projMatrix,
-		glMatrix.toRadian(45),		// Field of view
-		gl.canvas.clientWidth / gl.canvas.clientHeight,
-		0.1,						// Min view distance
-		100.0						// Max view distance
-	);
-
 	callback();
 };
 
 /**
- * Unloads the scene, setting relavant variables to null
+ * Asynchronous function unloads the scene, setting relavant
+ * variables to null
  *
  * @param callback function
  */
@@ -194,6 +213,8 @@ Scene.prototype.Unload = function (callback) {
 		}
 		this.textures = null
 	}
+	if (this.sun) { this.sun = null };
+	if (this.ambientIntensity) { this.ambientIntensity = null };
 	if (this.camera) { this.camera = null; }
 	if (this.program) { this.program = null; }
 	if (this.projMatrix) { this.projMatrix = null; }
@@ -325,11 +346,14 @@ Scene.prototype.Render = function () {
 
 	gl.useProgram(me.program);
 
+	// Set view matrix and projection matrix uniforms
 	gl.uniformMatrix4fv(me.program.uniforms.mProj, gl.FALSE, me.projMatrix);
 	gl.uniformMatrix4fv(me.program.uniforms.mView, gl.FALSE, me.viewMatrix);
-	gl.uniform3f(me.program.uniforms.ambientLightIntensity, 0.2, 0.2, 0.2);
-	gl.uniform3f(me.program.uniforms.sunDirection, 3.0, 4.0, -2.0);
-	gl.uniform3f(me.program.uniforms.sunColor, 0.9, 0.9, 0.9);
+
+	// Set sun light and ambient light uniforms
+	gl.uniform3fv(me.program.uniforms.ambientIntensity, me.ambientIntensity);
+	gl.uniform3fv(me.program.uniforms.sunDirection, me.sun.direction);
+	gl.uniform3fv(me.program.uniforms.sunIntensity, me.sun.intensity);
 
 	// Draw meshes
 	for (var i in me.models) {
