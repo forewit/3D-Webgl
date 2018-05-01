@@ -16,19 +16,19 @@ var init = function () {
 
 
     scene = new Scene(gl);
-
     scene.Load( function (){
-        scene.AddModel('tree', './src/tree.json', './img/texture.png', function (){
+        scene.AddModel('tree', './models/tree.json', './models/tree.png', function (){
 
+            // Pre-loop setup
             scene.models.tree.position([0,0,2]);
 
+            // Update loop
             var loop = function(dt) {
                 var perSec = dt / 1000 * 2 * Math.PI;
 
                 scene.camera.moveUp(0.01*perSec);
                 scene.camera.getViewMatrix(scene.viewMatrix);
             };
-
             scene.Begin(loop);
         });
     });
