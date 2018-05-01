@@ -1,6 +1,6 @@
 'use strict';
 
-var demo;
+var scene;
 
 var init = function () {
     var canvas = document.getElementById('webgl-surface');
@@ -14,15 +14,27 @@ var init = function () {
     	return;
     }
 
-    demo = new scene(gl);
-    demo.load(function (demoLoadError) {
-        if (demoLoadError) {
-            console.error(demoLoadError);
-        } else {
-            demo.begin();
-        }
-    });
-};
 
-// TODO: globalize scene / camera / lighting functions
-// TODO: add "load new model function"
+    scene = new Scene(gl);
+    scene.Load( function (){
+        scene.AddModel('tree', './models/tree.json', './models/tree.png', function (){
+
+            // Pre-loop setup
+            scene.models.tree.position([0,0,2]);
+
+            // Update loop
+            var loop = function(dt) {
+                var perSec = dt / 1000 * 2 * Math.PI;
+
+                scene.camera.moveUp(0.01*perSec);
+                scene.camera.getViewMatrix(scene.viewMatrix);
+            };
+            scene.Begin(loop);
+        });
+    });
+
+
+
+
+
+};
