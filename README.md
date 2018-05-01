@@ -1,3 +1,7 @@
-# This WAS a work in progress and is currently on hold until after I graduate from Liberty University
+# Playground site for creating gl-scene
 
-I know there are many fundamental mistakes with this code lol. One day they will be fixed :)
+Gl-Scene is a simple library for creating interactive webgl 3D scenes
+with models, cameras, and lighting.
+
+Feel free to make pull requests with any changes (minor or major) that you
+feel would improve the library.
