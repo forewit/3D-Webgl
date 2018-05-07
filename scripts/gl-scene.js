@@ -83,9 +83,9 @@ Scene.prototype.Load = function (callback) {
 		100.0								// MAX VIEW DISTANCE
 	);
 	// Initialize default sun and ambient light
-	me.ambientIntensity = [0.1, 0.1, 0.1];	// AMBIENT INTENSITY: RGB
+	me.ambientColor = [0.1, 0.1, 0.1];		// AMBIENT INTENSITY: RGB
 	me.sun = {
-		intensity: [0.9, 0.9, 0.9],			// SUN INTENSITY: RGB
+		color: [0.9, 0.9, 0.9],				// SUN INTENSITY: RGB
 		direction: [1, 1, 1]				// SUN DIRECTION: XYZ -> ORIGIN
 	};
 
@@ -129,13 +129,15 @@ Scene.prototype.Load = function (callback) {
 	'struct DirectionalLight',
 	'{',
 	'	vec3 direction;',
-	'	vec3 intensity;',
+	'	vec3 color;',
 	'};',
 	'',
 	'varying vec2 fragTexCoord;',
 	'varying vec3 fragNormal;',
 	'',
-	'uniform vec3 ambientIntensity;',
+	//'uniform float materialShininess', // TODO
+	//'uniform vec3 specularColor', // TODO
+	'uniform vec3 ambientColor;',
 	'uniform DirectionalLight sun;',
 	'uniform sampler2D sampler;',
 	'',
@@ -145,8 +147,11 @@ Scene.prototype.Load = function (callback) {
 	'	vec3 normSunDir = normalize(sun.direction);',
 	'	vec4 texel = texture2D(sampler, fragTexCoord);',
 	'',
-	'	vec3 lightIntensity = ambientIntensity +',
-	'		sun.intensity * max(dot(fragNormal, normSunDir), 0.0);',
+	//'	float specularLightWeighting = 0.0;', // TODO
+	//'	', // TODO
+	'',
+	'	vec3 lightIntensity = ambientColor +',
+	'		sun.color * max(dot(fragNormal, normSunDir), 0.0);',
 	'',
 	'  gl_FragColor = vec4(texel.rgb * lightIntensity, texel.a);',
 	'}'
@@ -179,9 +184,9 @@ Scene.prototype.Load = function (callback) {
 		mView: gl.getUniformLocation(me.program, 'mView'),
 		mWorld: gl.getUniformLocation(me.program, 'mWorld'),
 
-		ambientIntensity: gl.getUniformLocation(me.program, 'ambientIntensity'),
+		ambientColor: gl.getUniformLocation(me.program, 'ambientColor'),
 		sunDirection: gl.getUniformLocation(me.program, 'sun.direction'),
-		sunIntensity: gl.getUniformLocation(me.program, 'sun.intensity'),
+		sunColor: gl.getUniformLocation(me.program, 'sun.color'),
 	};
 	me.program.attribs = {
 		vPos: gl.getAttribLocation(me.program, 'vertPosition'),
@@ -214,7 +219,7 @@ Scene.prototype.Unload = function (callback) {
 		this.textures = null
 	}
 	if (this.sun) { this.sun = null };
-	if (this.ambientIntensity) { this.ambientIntensity = null };
+	if (this.ambientColor) { this.ambientColor = null };
 	if (this.camera) { this.camera = null; }
 	if (this.program) { this.program = null; }
 	if (this.projMatrix) { this.projMatrix = null; }
@@ -351,9 +356,9 @@ Scene.prototype.Render = function () {
 	gl.uniformMatrix4fv(me.program.uniforms.mView, gl.FALSE, me.viewMatrix);
 
 	// Set sun light and ambient light uniforms
-	gl.uniform3fv(me.program.uniforms.ambientIntensity, me.ambientIntensity);
+	gl.uniform3fv(me.program.uniforms.ambientColor, me.ambientColor);
 	gl.uniform3fv(me.program.uniforms.sunDirection, me.sun.direction);
-	gl.uniform3fv(me.program.uniforms.sunIntensity, me.sun.intensity);
+	gl.uniform3fv(me.program.uniforms.sunColor, me.sun.color);
 
 	// Draw meshes
 	for (var i in me.models) {
