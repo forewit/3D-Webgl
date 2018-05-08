@@ -18,18 +18,22 @@ var init = function () {
     scene = new Scene(gl);
     scene.Load( function (){
         scene.AddModel('tree', './models/tree.json', './models/tree.png', function (){
+            scene.AddModel('cube', './models/cube.json', './models/cube.png', function(){
+                // Pre-loop setup
+                scene.models.tree.position([-2,-3,-5]);
+                scene.models.cube.position([2, -1, -3]);
 
-            // Pre-loop setup
-            scene.models.tree.position([0,0,0]);
+                // Update loop
+                var loop = function(dt) {
+                    var perSec = dt / 1000 * 2 * Math.PI;
 
-            // Update loop
-            var loop = function(dt) {
-                var perSec = dt / 1000 * 2 * Math.PI;
+                    mat4.rotate(scene.models.cube.world, scene.models.cube.world, 0.11*perSec, [0,1,0]);
+                    //scene.camera.moveUp(0.01*perSec);
+                    //scene.camera.getViewMatrix(scene.viewMatrix);
+                };
+                scene.Begin(loop);
+            });
 
-                scene.camera.moveUp(0.01*perSec);
-                scene.camera.getViewMatrix(scene.viewMatrix);
-            };
-            scene.Begin(loop);
         });
     });
 

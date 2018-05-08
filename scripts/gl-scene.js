@@ -87,34 +87,38 @@ Scene.prototype.Load = function (callback) {
 	me.light = {
 		ambientColor: [0.1, 0.1, 0.1],
 		diffuseColor: [1.0, 1.0, 1.0],
-		location: [1, 1, 1],
-		specularIntensity: 1.0,
+		diffuseDirection: [1.0, 1.0, 1.0],
 	};
+	me.lightPosition = [0, 2, 5];
 
 	// Setup vertex shader
-	var vertexShaderText =
-	[
-	'precision mediump float;',
-	'',
-	'attribute vec3 vertPosition;',
-	'attribute vec2 vertTexCoord;',
-	'attribute vec3 vertNormal;',
-	'',
-	'varying vec2 fragTexCoord;',
-	'varying vec3 fragNormal;',
-	'',
-	'uniform mat4 mWorld;',
-	'uniform mat4 mView;',
-	'uniform mat4 mProj;',
-	'',
-	'void main()',
-	'{',
-	'  fragTexCoord = vertTexCoord;',
-	'  fragNormal = (mWorld * vec4(vertNormal, 0.0)).xyz;',
-	'',
-	'  gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);',
-	'}'
-	].join('\n');
+	var vertexShaderText = `
+	precision mediump float;
+
+	attribute vec3 a_vertPosition;
+	attribute vec2 a_vertTexCoord;
+	attribute vec3 a_vertNormal;
+
+	varying vec2 v_fragTexCoord;
+	varying vec3 v_fragNormal;
+	varying vec3 v_fragToLight;
+
+	uniform vec3 u_lightPosition;
+	uniform mat4 u_world;
+	uniform mat4 u_view;
+	uniform mat4 u_proj;
+
+	void main()
+	{
+	  vec4 position = vec4(a_vertPosition, 1.0);
+
+	  v_fragTexCoord = a_vertTexCoord;
+	  v_fragNormal = (u_world * vec4(a_vertNormal, 0.0)).xyz;
+	  v_fragToLight = u_lightPosition - (u_world * position).xyz;
+
+	  gl_Position = u_proj * u_view * u_world * position;
+	}
+	`;
 	var vs = gl.createShader(gl.VERTEX_SHADER);
 	gl.shaderSource(vs, vertexShaderText);
 	gl.compileShader(vs);
@@ -124,36 +128,41 @@ Scene.prototype.Load = function (callback) {
 	}
 
 	// Setup fragment shader
-	var fragmentShaderText =
-	[
-	'precision mediump float;',
-	'',
-	'struct Light',
-	'{',
-	'	vec3 ambientColor;',
-	'	vec3 diffuseColor;',
-	'	vec3 location;',
-	'	float specularIntensity;',
-	'};',
-	'',
-	'varying vec2 fragTexCoord;',
-	'varying vec3 fragNormal;',
-	'',
-	'uniform Light u_light;',
-	'uniform sampler2D sampler;',
-	'',
-	'void main()',
-	'{',
-	'	vec3 surfaceNormal = normalize(fragNormal);',
-	'	vec3 normdiffuseDir = normalize(u_light.location);',
-	'	vec4 textureColor = texture2D(sampler, fragTexCoord);',
-	'',
-	'	vec3 lightIntensity = u_light.ambientColor +',
-	'		u_light.diffuseColor * max(dot(fragNormal, normdiffuseDir), 0.0);',
-	'',
-	'  gl_FragColor = vec4(textureColor.rgb * lightIntensity, textureColor.a);',
-	'}'
-	].join('\n');
+	const fragmentShaderText = `
+	precision mediump float;
+
+	struct DirectionalLight
+	{
+		vec3 ambientColor;
+		vec3 diffuseColor;
+		vec3 diffuseDirection;
+	};
+
+	varying vec2 v_fragTexCoord;
+	varying vec3 v_fragNormal;
+	varying vec3 v_fragToLight;
+
+	uniform DirectionalLight u_light;
+	uniform sampler2D sampler;
+
+	void main()
+	{
+		vec3 surfaceNormal = normalize(v_fragNormal);
+		vec3 diffuseDirectionNormal = normalize(u_light.diffuseDirection);
+		vec4 textureColor = texture2D(sampler, v_fragTexCoord);
+		vec3 surfaceToLightNormal = normalize(v_fragToLight);
+
+		vec3 lightIntensity =
+			u_light.ambientColor +
+			u_light.diffuseColor * max(dot(v_fragNormal, diffuseDirectionNormal), 0.0) +
+			u_light.diffuseColor * max(dot(v_fragNormal, surfaceToLightNormal), 0.0);
+
+	  gl_FragColor = vec4(textureColor.rgb * lightIntensity, textureColor.a);
+  }
+  `;
+  //TODO: should replace v_fragNormal with surfaceNormal?????
+  //TODO: separate diffuse, ambient, and point lights
+
 	var fs = gl.createShader(gl.FRAGMENT_SHADER);
 	gl.shaderSource(fs, fragmentShaderText);
 	gl.compileShader(fs);
@@ -178,18 +187,20 @@ Scene.prototype.Load = function (callback) {
 	}
 	me.program = program;
 	me.program.uniforms = {
-		mProj: gl.getUniformLocation(me.program, 'mProj'),
-		mView: gl.getUniformLocation(me.program, 'mView'),
-		mWorld: gl.getUniformLocation(me.program, 'mWorld'),
+		mProj: gl.getUniformLocation(me.program, 'u_proj'),
+		mView: gl.getUniformLocation(me.program, 'u_view'),
+		mWorld: gl.getUniformLocation(me.program, 'u_world'),
 
 		lightAmbientColor: gl.getUniformLocation(me.program, 'u_light.ambientColor'),
-		lightLocation: gl.getUniformLocation(me.program, 'u_light.location'),
+		lightDiffuseDirection: gl.getUniformLocation(me.program, 'u_light.diffuseDirection'),
 		lightDiffuseColor: gl.getUniformLocation(me.program, 'u_light.diffuseColor'),
+
+		lightPosition: gl.getUniformLocation(me.program, 'u_lightPosition')
 	};
 	me.program.attribs = {
-		vPos: gl.getAttribLocation(me.program, 'vertPosition'),
-		vNorm: gl.getAttribLocation(me.program, 'vertNormal'),
-		vTexCoord: gl.getAttribLocation(me.program, 'vertTexCoord'),
+		vPos: gl.getAttribLocation(me.program, 'a_vertPosition'),
+		vNorm: gl.getAttribLocation(me.program, 'a_vertNormal'),
+		vTexCoord: gl.getAttribLocation(me.program, 'a_vertTexCoord'),
 	};
 
 	callback();
@@ -353,12 +364,11 @@ Scene.prototype.Render = function () {
 	gl.uniformMatrix4fv(me.program.uniforms.mProj, gl.FALSE, me.projMatrix);
 	gl.uniformMatrix4fv(me.program.uniforms.mView, gl.FALSE, me.viewMatrix);
 
-	//gl.uniform3fv(me.program.uniforms.)
-
 	// Set diffuse light and ambient light uniforms
 	gl.uniform3fv(me.program.uniforms.lightAmbientColor, me.light.ambientColor);
-	gl.uniform3fv(me.program.uniforms.lightLocation, me.light.location);
 	gl.uniform3fv(me.program.uniforms.lightDiffuseColor, me.light.diffuseColor);
+	gl.uniform3fv(me.program.uniforms.lightDiffuseDirection, me.light.diffuseDirection);
+	gl.uniform3fv(me.program.uniforms.lightPosition, me.lightPosition);
 
 	// Draw meshes
 	for (var i in me.models) {
@@ -420,10 +430,10 @@ Scene.prototype.Render = function () {
  * @param texCoords array of coordinates mapping vertices to the texture image
  */
 var Model = function (gl, vertices, indices, normals, texCoords) {
-    this.vbo = gl.createBuffer();
-    this.ibo = gl.createBuffer();
-    this.nbo = gl.createBuffer();
-    this.tbo = gl.createBuffer();
+    this.vbo = gl.createBuffer(); // Vertex buffer object
+    this.ibo = gl.createBuffer(); // Index buffer object
+    this.nbo = gl.createBuffer(); // Normal Buffer object
+    this.tbo = gl.createBuffer(); // Texture coordinate buffer object
     this.nPoints = indices.length;
 
     this.world = mat4.create()
