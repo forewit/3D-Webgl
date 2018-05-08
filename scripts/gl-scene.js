@@ -82,37 +82,45 @@ Scene.prototype.Load = function (callback) {
 		0.1,								// MIN VIEW DISTANCE
 		100.0								// MAX VIEW DISTANCE
 	);
-	// Initialize default sun and ambient light
-	me.ambientIntensity = [0.1, 0.1, 0.1];	// AMBIENT INTENSITY: RGB
-	me.sun = {
-		intensity: [0.9, 0.9, 0.9],			// SUN INTENSITY: RGB
-		direction: [1, 1, 1]				// SUN DIRECTION: XYZ -> ORIGIN
+
+	// Setup light values
+	me.light = {
+		position: [3, 0, 0],
+		ambient: [0.1, 0.1, 0.1],
+		diffuse: [1, 1, 1],
+		specular: [1, 1, 1],
+		shine: 100,
 	};
 
+
 	// Setup vertex shader
-	var vertexShaderText =
-	[
-	'precision mediump float;',
-	'',
-	'attribute vec3 vertPosition;',
-	'attribute vec2 vertTexCoord;',
-	'attribute vec3 vertNormal;',
-	'',
-	'varying vec2 fragTexCoord;',
-	'varying vec3 fragNormal;',
-	'',
-	'uniform mat4 mWorld;',
-	'uniform mat4 mView;',
-	'uniform mat4 mProj;',
-	'',
-	'void main()',
-	'{',
-	'  fragTexCoord = vertTexCoord;',
-	'  fragNormal = (mWorld * vec4(vertNormal, 0.0)).xyz;',
-	'',
-	'  gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);',
-	'}'
-	].join('\n');
+	var vertexShaderText = `
+	precision mediump float;
+
+	attribute vec3 a_vertPosition;
+	attribute vec2 a_vertTexCoord;
+	attribute vec3 a_vertNormal;
+
+	varying vec2 v_fragTexCoord;
+	varying vec3 v_fragNormal;
+	varying vec3 v_fragPosition;
+
+	uniform mat4 u_world;
+	uniform mat4 u_view;
+	uniform mat4 u_proj;
+
+	void main()
+	{
+		vec4 vertPosition = vec4(a_vertPosition, 1.0);
+		vec3 surfacePosition = (u_world * vertPosition).xyz;
+
+		v_fragPosition = surfacePosition;
+		v_fragNormal = (u_world * vec4(a_vertNormal, 0.0)).xyz;
+	  	v_fragTexCoord = a_vertTexCoord;
+
+	  	gl_Position = u_proj * u_view * u_world * vertPosition;
+	}
+	`;
 	var vs = gl.createShader(gl.VERTEX_SHADER);
 	gl.shaderSource(vs, vertexShaderText);
 	gl.compileShader(vs);
@@ -122,35 +130,45 @@ Scene.prototype.Load = function (callback) {
 	}
 
 	// Setup fragment shader
-	var fragmentShaderText =
-	[
-	'precision mediump float;',
-	'',
-	'struct DirectionalLight',
-	'{',
-	'	vec3 direction;',
-	'	vec3 intensity;',
-	'};',
-	'',
-	'varying vec2 fragTexCoord;',
-	'varying vec3 fragNormal;',
-	'',
-	'uniform vec3 ambientIntensity;',
-	'uniform DirectionalLight sun;',
-	'uniform sampler2D sampler;',
-	'',
-	'void main()',
-	'{',
-	'	vec3 surfaceNormal = normalize(fragNormal);',
-	'	vec3 normSunDir = normalize(sun.direction);',
-	'	vec4 texel = texture2D(sampler, fragTexCoord);',
-	'',
-	'	vec3 lightIntensity = ambientIntensity +',
-	'		sun.intensity * max(dot(fragNormal, normSunDir), 0.0);',
-	'',
-	'  gl_FragColor = vec4(texel.rgb * lightIntensity, texel.a);',
-	'}'
-	].join('\n');
+	const fragmentShaderText = `
+	precision mediump float;
+
+	varying vec2 v_fragTexCoord;
+	varying vec3 v_fragNormal;
+	varying vec3 v_fragPosition;
+
+
+	struct Light {
+		vec3 position;
+		vec3 ambient;
+		vec3 diffuse;
+		vec3 specular;
+		float shine;
+	};
+	uniform Light u_light;
+	uniform vec3 u_eyePosition;
+	uniform sampler2D sampler;
+
+	void main()
+	{
+		vec3 surfaceNormal = normalize(v_fragNormal);
+		vec3 surfaceToLight = normalize(u_light.position - v_fragPosition);
+		vec3 surfaceToEye = normalize(u_eyePosition - v_fragPosition);
+		vec3 halfVector = normalize(surfaceToLight + surfaceToEye);
+
+		vec3 ambient = u_light.ambient;
+		vec3 diffuse =  u_light.diffuse * max(dot(surfaceNormal, surfaceToLight), 0.0);
+		vec3 specular = u_light.specular * max(pow(dot(surfaceNormal, halfVector), u_light.shine), 0.0);
+
+		vec3 intensity = ambient + diffuse;
+
+		vec4 textureColor = texture2D(sampler, v_fragTexCoord);
+
+	  gl_FragColor = vec4(
+		  textureColor.rgb * intensity + specular,
+		  textureColor.a);
+  }
+  `;
 	var fs = gl.createShader(gl.FRAGMENT_SHADER);
 	gl.shaderSource(fs, fragmentShaderText);
 	gl.compileShader(fs);
@@ -175,18 +193,22 @@ Scene.prototype.Load = function (callback) {
 	}
 	me.program = program;
 	me.program.uniforms = {
-		mProj: gl.getUniformLocation(me.program, 'mProj'),
-		mView: gl.getUniformLocation(me.program, 'mView'),
-		mWorld: gl.getUniformLocation(me.program, 'mWorld'),
+		mProj: gl.getUniformLocation(me.program, 'u_proj'),
+		mView: gl.getUniformLocation(me.program, 'u_view'),
+		mWorld: gl.getUniformLocation(me.program, 'u_world'),
 
-		ambientIntensity: gl.getUniformLocation(me.program, 'ambientIntensity'),
-		sunDirection: gl.getUniformLocation(me.program, 'sun.direction'),
-		sunIntensity: gl.getUniformLocation(me.program, 'sun.intensity'),
+		lightPosition: gl.getUniformLocation(me.program, 'u_light.position'),
+		lightAmbient: gl.getUniformLocation(me.program, 'u_light.ambient'),
+		lightDiffuse: gl.getUniformLocation(me.program, 'u_light.diffuse'),
+		lightSpecular: gl.getUniformLocation(me.program, 'u_light.specular'),
+		lightShine: gl.getUniformLocation(me.program, 'u_light.shine'),
+
+		eyePosition: gl.getUniformLocation(me.program, 'u_eyePosition'),
 	};
 	me.program.attribs = {
-		vPos: gl.getAttribLocation(me.program, 'vertPosition'),
-		vNorm: gl.getAttribLocation(me.program, 'vertNormal'),
-		vTexCoord: gl.getAttribLocation(me.program, 'vertTexCoord'),
+		vPos: gl.getAttribLocation(me.program, 'a_vertPosition'),
+		vNorm: gl.getAttribLocation(me.program, 'a_vertNormal'),
+		vTexCoord: gl.getAttribLocation(me.program, 'a_vertTexCoord'),
 	};
 
 	callback();
@@ -213,8 +235,8 @@ Scene.prototype.Unload = function (callback) {
 		}
 		this.textures = null
 	}
-	if (this.sun) { this.sun = null };
-	if (this.ambientIntensity) { this.ambientIntensity = null };
+	if (this.diffuse) { this.diffuse = null };
+	if (this.ambientColor) { this.ambientColor = null };
 	if (this.camera) { this.camera = null; }
 	if (this.program) { this.program = null; }
 	if (this.projMatrix) { this.projMatrix = null; }
@@ -350,10 +372,15 @@ Scene.prototype.Render = function () {
 	gl.uniformMatrix4fv(me.program.uniforms.mProj, gl.FALSE, me.projMatrix);
 	gl.uniformMatrix4fv(me.program.uniforms.mView, gl.FALSE, me.viewMatrix);
 
-	// Set sun light and ambient light uniforms
-	gl.uniform3fv(me.program.uniforms.ambientIntensity, me.ambientIntensity);
-	gl.uniform3fv(me.program.uniforms.sunDirection, me.sun.direction);
-	gl.uniform3fv(me.program.uniforms.sunIntensity, me.sun.intensity);
+	// Set lighting uniforms
+	gl.uniform3fv(me.program.uniforms.lightPosition, me.light.position);
+	gl.uniform3fv(me.program.uniforms.lightAmbient, me.light.ambient);
+	gl.uniform3fv(me.program.uniforms.lightDiffuse, me.light.diffuse);
+	gl.uniform3fv(me.program.uniforms.lightSpecular, me.light.specular);
+	gl.uniform1f(me.program.uniforms.lightShine, me.light.shine);
+
+	// Set eye location uniform
+	gl.uniform3fv(me.program.uniforms.eyePosition, me.camera.position);
 
 	// Draw meshes
 	for (var i in me.models) {
@@ -415,10 +442,10 @@ Scene.prototype.Render = function () {
  * @param texCoords array of coordinates mapping vertices to the texture image
  */
 var Model = function (gl, vertices, indices, normals, texCoords) {
-    this.vbo = gl.createBuffer();
-    this.ibo = gl.createBuffer();
-    this.nbo = gl.createBuffer();
-    this.tbo = gl.createBuffer();
+    this.vbo = gl.createBuffer(); // Vertex buffer object
+    this.ibo = gl.createBuffer(); // Index buffer object
+    this.nbo = gl.createBuffer(); // Normal Buffer object
+    this.tbo = gl.createBuffer(); // Texture coordinate buffer object
     this.nPoints = indices.length;
 
     this.world = mat4.create()
