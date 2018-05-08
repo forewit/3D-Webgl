@@ -89,7 +89,7 @@ Scene.prototype.Load = function (callback) {
 		diffuseColor: [1.0, 1.0, 1.0],
 		diffuseDirection: [1.0, 1.0, 1.0],
 	};
-	me.lightPosition = [0, 2, 5];
+	me.lightPosition = [1, 1, 2];
 
 	// Setup vertex shader
 	var vertexShaderText = `
@@ -153,15 +153,16 @@ Scene.prototype.Load = function (callback) {
 		vec3 surfaceToLightNormal = normalize(v_fragToLight);
 
 		vec3 lightIntensity =
-			u_light.ambientColor +
-			u_light.diffuseColor * max(dot(v_fragNormal, diffuseDirectionNormal), 0.0) +
+			//u_light.ambientColor +
+			//u_light.diffuseColor * max(dot(v_fragNormal, diffuseDirectionNormal), 0.0) +
 			u_light.diffuseColor * max(dot(v_fragNormal, surfaceToLightNormal), 0.0);
 
 	  gl_FragColor = vec4(textureColor.rgb * lightIntensity, textureColor.a);
   }
   `;
-  //TODO: should replace v_fragNormal with surfaceNormal?????
-  //TODO: separate diffuse, ambient, and point lights
+  // TODO: should replace v_fragNormal with surfaceNormal?????
+  // TODO: separate diffuse, ambient, and point lights
+  // TODO: add point light intensity / color
 
 	var fs = gl.createShader(gl.FRAGMENT_SHADER);
 	gl.shaderSource(fs, fragmentShaderText);

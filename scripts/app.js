@@ -21,7 +21,7 @@ var init = function () {
             scene.AddModel('cube', './models/cube.json', './models/cube.png', function(){
                 // Pre-loop setup
                 scene.models.tree.position([-2,-3,-5]);
-                scene.models.cube.position([2, -1, -3]);
+                scene.models.cube.position([0, 0, 0]);
 
                 // Update loop
                 var loop = function(dt) {
