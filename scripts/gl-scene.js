@@ -84,12 +84,14 @@ Scene.prototype.Load = function (callback) {
 	);
 
 	// Setup light values
+	me.lightPosition = [-3, 1, -5];
+	me.shininess = 20;
 	me.light = {
 		ambientColor: [0.1, 0.1, 0.1],
 		diffuseColor: [1.0, 1.0, 1.0],
-		diffuseDirection: [1.0, 1.0, 1.0],
+		diffuseDirection: me.lightPosition,
 	};
-	me.lightPosition = [1, 1, 2];
+
 
 	// Setup vertex shader
 	var vertexShaderText = `
@@ -102,8 +104,10 @@ Scene.prototype.Load = function (callback) {
 	varying vec2 v_fragTexCoord;
 	varying vec3 v_fragNormal;
 	varying vec3 v_fragToLight;
+	varying vec3 v_fragToEye;
 
 	uniform vec3 u_lightPosition;
+	uniform vec3 u_eyePosition;
 	uniform mat4 u_world;
 	uniform mat4 u_view;
 	uniform mat4 u_proj;
@@ -111,10 +115,12 @@ Scene.prototype.Load = function (callback) {
 	void main()
 	{
 	  vec4 position = vec4(a_vertPosition, 1.0);
+	  vec3 surfacePosition = (u_world * position).xyz;
 
 	  v_fragTexCoord = a_vertTexCoord;
 	  v_fragNormal = (u_world * vec4(a_vertNormal, 0.0)).xyz;
-	  v_fragToLight = u_lightPosition - (u_world * position).xyz;
+	  v_fragToLight = u_lightPosition - surfacePosition;
+	  v_fragToEye = u_eyePosition - surfacePosition;
 
 	  gl_Position = u_proj * u_view * u_world * position;
 	}
@@ -141,26 +147,40 @@ Scene.prototype.Load = function (callback) {
 	varying vec2 v_fragTexCoord;
 	varying vec3 v_fragNormal;
 	varying vec3 v_fragToLight;
+	varying vec3 v_fragToEye;
 
 	uniform DirectionalLight u_light;
+	uniform float u_shininess;
 	uniform sampler2D sampler;
 
 	void main()
 	{
 		vec3 surfaceNormal = normalize(v_fragNormal);
-		vec3 diffuseDirectionNormal = normalize(u_light.diffuseDirection);
+
+		vec3 diffuseDirection = normalize(u_light.diffuseDirection);
 		vec4 textureColor = texture2D(sampler, v_fragTexCoord);
-		vec3 surfaceToLightNormal = normalize(v_fragToLight);
+		vec3 surfaceToLightDirection = normalize(v_fragToLight);
+		vec3 surfaceToEyeDirection = normalize(v_fragToEye);
+		vec3 halfVector = normalize(surfaceToLightDirection + surfaceToEyeDirection);
+
+		vec3 diffuseLight = u_light.diffuseColor * max(dot(v_fragNormal, diffuseDirection), 0.0);
+		float pointLight = max(dot(surfaceNormal, surfaceToLightDirection), 0.0);
+
+		float specularHighlight = max(pow(dot(surfaceNormal, halfVector), u_shininess), 0.0);
 
 		vec3 lightIntensity =
-			//u_light.ambientColor +
-			//u_light.diffuseColor * max(dot(v_fragNormal, diffuseDirectionNormal), 0.0) +
-			u_light.diffuseColor * max(dot(v_fragNormal, surfaceToLightNormal), 0.0);
+			u_light.ambientColor +
+			diffuseLight +
+			pointLight;
 
-	  gl_FragColor = vec4(textureColor.rgb * lightIntensity, textureColor.a);
+	  gl_FragColor = vec4(
+		  textureColor.rgb * lightIntensity + specularHighlight,
+		  textureColor.a);
   }
   `;
+  // TODO: will need to change poinLight and specularHighlight to vec3 instead of float
   // TODO: should replace v_fragNormal with surfaceNormal?????
+  // TODO: remove u_light.diffuse color from the specular calculation
   // TODO: separate diffuse, ambient, and point lights
   // TODO: add point light intensity / color
 
@@ -195,8 +215,9 @@ Scene.prototype.Load = function (callback) {
 		lightAmbientColor: gl.getUniformLocation(me.program, 'u_light.ambientColor'),
 		lightDiffuseDirection: gl.getUniformLocation(me.program, 'u_light.diffuseDirection'),
 		lightDiffuseColor: gl.getUniformLocation(me.program, 'u_light.diffuseColor'),
-
-		lightPosition: gl.getUniformLocation(me.program, 'u_lightPosition')
+		lightPosition: gl.getUniformLocation(me.program, 'u_lightPosition'),
+		eyePosition: gl.getUniformLocation(me.program, 'u_eyePosition'),
+		shininess: gl.getUniformLocation(me.program, 'u_shininess'),
 	};
 	me.program.attribs = {
 		vPos: gl.getAttribLocation(me.program, 'a_vertPosition'),
@@ -370,6 +391,8 @@ Scene.prototype.Render = function () {
 	gl.uniform3fv(me.program.uniforms.lightDiffuseColor, me.light.diffuseColor);
 	gl.uniform3fv(me.program.uniforms.lightDiffuseDirection, me.light.diffuseDirection);
 	gl.uniform3fv(me.program.uniforms.lightPosition, me.lightPosition);
+	gl.uniform3fv(me.program.uniforms.eyePosition, me.camera.position);
+	gl.uniform1f(me.program.uniforms.shininess, me.shininess);
 
 	// Draw meshes
 	for (var i in me.models) {
