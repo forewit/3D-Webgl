@@ -65,6 +65,7 @@ Scene.prototype.Load = function (callback) {
 	// Initialize models and textures
 	me.models = {};
 	me.textures = {};
+	me.specularMaps = {};
 
 	// Initialize default view and camera position
 	me.camera = new Camera(					/********* DEFAULTS *********/
@@ -85,13 +86,14 @@ Scene.prototype.Load = function (callback) {
 
 	// Setup light values
 	me.light = {
-		position: [3, 0, 0],
-		ambient: [0.1, 0.1, 0.1],
+		position: [2, 0.8, 2],
+		ambient: [0.2, 0.2, 0.2],
 		diffuse: [1, 1, 1],
 		specular: [1, 1, 1],
+	};
+	me.material = {
 		shine: 100,
 	};
-
 
 	// Setup vertex shader
 	var vertexShaderText = `
@@ -137,7 +139,6 @@ Scene.prototype.Load = function (callback) {
 	varying vec3 v_fragNormal;
 	varying vec3 v_fragPosition;
 
-
 	struct Light {
 		vec3 position;
 		vec3 ambient;
@@ -146,29 +147,40 @@ Scene.prototype.Load = function (callback) {
 		float shine;
 	};
 	uniform Light u_light;
-	uniform vec3 u_eyePosition;
+
+	struct Material {
+		sampler2D diffuse;
+		sampler2D specular;
+		float shine;
+	};
+	uniform Material u_material;
+
+	uniform vec3 u_viewPosition;
 	uniform sampler2D sampler;
 
 	void main()
 	{
-		vec3 surfaceNormal = normalize(v_fragNormal);
-		vec3 surfaceToLight = normalize(u_light.position - v_fragPosition);
-		vec3 surfaceToEye = normalize(u_eyePosition - v_fragPosition);
-		vec3 halfVector = normalize(surfaceToLight + surfaceToEye);
+		// ambient
+		vec3 ambient = u_light.ambient * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
 
-		vec3 ambient = u_light.ambient;
-		vec3 diffuse =  u_light.diffuse * max(dot(surfaceNormal, surfaceToLight), 0.0);
-		vec3 specular = u_light.specular * max(pow(dot(surfaceNormal, halfVector), u_light.shine), 0.0);
+	    // diffuse
+	    vec3 norm = normalize(v_fragNormal);
+	    vec3 lightDir = normalize(u_light.position - v_fragPosition);
+	    float diff = max(dot(norm, lightDir), 0.0);
+	    vec3 diffuse = u_light.diffuse * diff * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
 
-		vec3 intensity = ambient + diffuse;
+	    // specular
+	    vec3 viewDir = normalize(u_viewPosition - v_fragPosition);
+	    vec3 reflectDir = reflect(-lightDir, norm);
+	    float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
+	    vec3 specular = u_light.specular * spec * vec3(texture2D(u_material.specular, v_fragTexCoord));
 
-		vec4 textureColor = texture2D(sampler, v_fragTexCoord);
-
-	  gl_FragColor = vec4(
-		  textureColor.rgb * intensity + specular,
-		  textureColor.a);
+	    gl_FragColor = vec4(ambient + diffuse + specular, 1.0);
   }
   `;
+	// TODO: make lights one color instead of 3????
+	// TODO: change me.material to a single shine var instead of object
+
 	var fs = gl.createShader(gl.FRAGMENT_SHADER);
 	gl.shaderSource(fs, fragmentShaderText);
 	gl.compileShader(fs);
@@ -193,17 +205,22 @@ Scene.prototype.Load = function (callback) {
 	}
 	me.program = program;
 	me.program.uniforms = {
+		// Global uniforms
 		mProj: gl.getUniformLocation(me.program, 'u_proj'),
 		mView: gl.getUniformLocation(me.program, 'u_view'),
 		mWorld: gl.getUniformLocation(me.program, 'u_world'),
+		viewPosition: gl.getUniformLocation(me.program, 'u_viewPosition'),
 
+		// Lighting uniforms
 		lightPosition: gl.getUniformLocation(me.program, 'u_light.position'),
 		lightAmbient: gl.getUniformLocation(me.program, 'u_light.ambient'),
 		lightDiffuse: gl.getUniformLocation(me.program, 'u_light.diffuse'),
 		lightSpecular: gl.getUniformLocation(me.program, 'u_light.specular'),
-		lightShine: gl.getUniformLocation(me.program, 'u_light.shine'),
 
-		eyePosition: gl.getUniformLocation(me.program, 'u_eyePosition'),
+		// Material uniforms
+		materialShine: gl.getUniformLocation(me.program, 'u_material.shine'),
+		materialDiffuse: gl.getUniformLocation(me.program, 'u_material.diffuse'),
+		materialSpecular: gl.getUniformLocation(me.program, 'u_material.specular'),
 	};
 	me.program.attribs = {
 		vPos: gl.getAttribLocation(me.program, 'a_vertPosition'),
@@ -290,11 +307,11 @@ Scene.prototype.Pause = function () {
  * @param imgURL URL pointing to the texture image.
  * @param callback function
  */
-Scene.prototype.AddModel = function (id, jsonURL, imgURL, callback) {
+Scene.prototype.AddModel = function (id, jsonURL, textureURL, specMapURL, callback) {
 	var me = this;
 	var gl = me.gl;
 
-	// Load json
+	// Load model json
 	var request = new XMLHttpRequest();
 	request.open('GET', jsonURL, true);
 	request.onload = function () {
@@ -302,37 +319,56 @@ Scene.prototype.AddModel = function (id, jsonURL, imgURL, callback) {
 			try {
 				var modelJSON = JSON.parse(request.responseText);
 
-				// Load image
-				var image = new Image();
-				image.onload = function () {
+				// Load texture image
+				var texImage = new Image();
+				texImage.onload = function () {
 
-					// Create model
-					me.models[id] = new Model(
-						gl,
-						modelJSON.data.attributes.position.array,
-						modelJSON.data.index.array,
-						modelJSON.data.attributes.normal.array,
-						modelJSON.data.attributes.uv.array
-					)
-					// Create texture
-					var texture = me.gl.createTexture();
-					me.textures[id] = texture;
-					gl.bindTexture(gl.TEXTURE_2D, texture);
-					gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-					gl.texImage2D(
-						gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
-						gl.UNSIGNED_BYTE,
-						image
-					);
-					gl.bindTexture(gl.TEXTURE_2D, null);
+					var specMapImage = new Image();
+					specMapImage.onload = function () {
+						// Create model
+						me.models[id] = new Model(
+							gl,
+							modelJSON.data.attributes.position.array,
+							modelJSON.data.index.array,
+							modelJSON.data.attributes.normal.array,
+							modelJSON.data.attributes.uv.array
+						)
+						// Create texture
+						var texture = me.gl.createTexture();
+						me.textures[id] = texture;
+						gl.bindTexture(gl.TEXTURE_2D, texture);
+						gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+						gl.texImage2D(
+							gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+							gl.UNSIGNED_BYTE,
+							texImage
+						);
+						gl.bindTexture(gl.TEXTURE_2D, null);
 
-					callback();
+						// Create specular map texture
+						var specMap = me.gl.createTexture();
+						me.specularMaps[id] = specMap;
+						gl.bindTexture(gl.TEXTURE_2D, specMap);
+						gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+						gl.texImage2D(
+							gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+							gl.UNSIGNED_BYTE,
+							specMapImage
+						);
+						gl.bindTexture(gl.TEXTURE_2D, null);
+						callback();
+					};
+					specMapImage.src = specMapURL;
 				};
-				image.src = imgURL;
+				texImage.src = textureURL;
 			} catch (e) {
 				// Failed to load image or parse json
 				console.error(e);
@@ -368,25 +404,31 @@ Scene.prototype.Render = function () {
 
 	gl.useProgram(me.program);
 
-	// Set view matrix and projection matrix uniforms
+	// Set global uniforms
 	gl.uniformMatrix4fv(me.program.uniforms.mProj, gl.FALSE, me.projMatrix);
 	gl.uniformMatrix4fv(me.program.uniforms.mView, gl.FALSE, me.viewMatrix);
+	gl.uniform3fv(me.program.uniforms.viewPosition, me.camera.position);
 
 	// Set lighting uniforms
 	gl.uniform3fv(me.program.uniforms.lightPosition, me.light.position);
 	gl.uniform3fv(me.program.uniforms.lightAmbient, me.light.ambient);
 	gl.uniform3fv(me.program.uniforms.lightDiffuse, me.light.diffuse);
 	gl.uniform3fv(me.program.uniforms.lightSpecular, me.light.specular);
-	gl.uniform1f(me.program.uniforms.lightShine, me.light.shine);
 
-	// Set eye location uniform
-	gl.uniform3fv(me.program.uniforms.eyePosition, me.camera.position);
+	// Set material uniforms
+	gl.uniform1f(me.program.uniforms.materialShine, me.material.shine);
+	gl.uniform1i(me.program.uniforms.materialDiffuse, 0) // Texture unit 0
+	gl.uniform1i(me.program.uniforms.materialSpecular, 1) // Texture unit 1
 
 	// Draw meshes
 	for (var i in me.models) {
 		// Bind texture
-		gl.bindTexture(gl.TEXTURE_2D, me.textures[i]);
 		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, me.textures[i]);
+
+		// Bind specular mapping
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, me.specularMaps[i]);
 
 		// Per object uniforms
 		gl.uniformMatrix4fv(
@@ -424,6 +466,10 @@ Scene.prototype.Render = function () {
 		gl.enableVertexAttribArray(me.program.attribs.vNorm);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+
+
+
 
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, me.models[i].ibo);
 		gl.drawElements(gl.TRIANGLES, me.models[i].nPoints, gl.UNSIGNED_SHORT, 0);
