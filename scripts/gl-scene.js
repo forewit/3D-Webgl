@@ -85,11 +85,17 @@ Scene.prototype.Load = function (callback) {
 	);
 
 	// Setup light values
-	me.light = {
+	// SEE: https://learnopengl.com/Lighting/Light-casters
+	me.pointLight = {
 		position: [2, 0.8, 2],
+
 		ambient: [0.2, 0.2, 0.2],
 		diffuse: [1, 1, 1],
 		specular: [1, 1, 1],
+
+		constant: 1.0,
+		linear: 0.045,
+		quadratic: 0.0075,
 	};
 	me.material = {
 		shine: 100,
@@ -139,14 +145,18 @@ Scene.prototype.Load = function (callback) {
 	varying vec3 v_fragNormal;
 	varying vec3 v_fragPosition;
 
-	struct Light {
+	struct PointLight {
 		vec3 position;
+
 		vec3 ambient;
 		vec3 diffuse;
 		vec3 specular;
-		float shine;
+
+		float constant;
+		float linear;
+		float quadratic;
 	};
-	uniform Light u_light;
+	uniform PointLight u_light;
 
 	struct Material {
 		sampler2D diffuse;
@@ -175,11 +185,21 @@ Scene.prototype.Load = function (callback) {
 	    float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
 	    vec3 specular = u_light.specular * spec * vec3(texture2D(u_material.specular, v_fragTexCoord));
 
+		// Account for attenuation
+		float distance = length(u_light.position - v_fragPosition);
+		float attenuation = 1.0 / (u_light.constant + u_light.linear * distance +
+			u_light.quadratic * (distance * distance));
+		ambient  *= attenuation;
+		diffuse  *= attenuation;
+		specular *= attenuation;
+
 	    gl_FragColor = vec4(ambient + diffuse + specular, 1.0);
   }
   `;
-	// TODO: make lights one color instead of 3????
 	// TODO: change me.material to a single shine var instead of object
+	// TODO: add load texture function
+	// TODO: overload the add models function (depending of number of textuers)
+	// TODO: add spot lights, point lights, and directional lights
 
 	var fs = gl.createShader(gl.FRAGMENT_SHADER);
 	gl.shaderSource(fs, fragmentShaderText);
@@ -216,6 +236,9 @@ Scene.prototype.Load = function (callback) {
 		lightAmbient: gl.getUniformLocation(me.program, 'u_light.ambient'),
 		lightDiffuse: gl.getUniformLocation(me.program, 'u_light.diffuse'),
 		lightSpecular: gl.getUniformLocation(me.program, 'u_light.specular'),
+		lightConstant: gl.getUniformLocation(me.program, 'u_light.constant'),
+		lightLinear: gl.getUniformLocation(me.program, 'u_light.linear'),
+		lightQuadratic: gl.getUniformLocation(me.program, 'u_light.quadratic'),
 
 		// Material uniforms
 		materialShine: gl.getUniformLocation(me.program, 'u_material.shine'),
@@ -410,10 +433,13 @@ Scene.prototype.Render = function () {
 	gl.uniform3fv(me.program.uniforms.viewPosition, me.camera.position);
 
 	// Set lighting uniforms
-	gl.uniform3fv(me.program.uniforms.lightPosition, me.light.position);
-	gl.uniform3fv(me.program.uniforms.lightAmbient, me.light.ambient);
-	gl.uniform3fv(me.program.uniforms.lightDiffuse, me.light.diffuse);
-	gl.uniform3fv(me.program.uniforms.lightSpecular, me.light.specular);
+	gl.uniform3fv(me.program.uniforms.lightPosition, me.pointLight.position);
+	gl.uniform3fv(me.program.uniforms.lightAmbient, me.pointLight.ambient);
+	gl.uniform3fv(me.program.uniforms.lightDiffuse, me.pointLight.diffuse);
+	gl.uniform3fv(me.program.uniforms.lightSpecular, me.pointLight.specular);
+	gl.uniform1f(me.program.uniforms.lightConstant, me.pointLight.constant);
+	gl.uniform1f(me.program.uniforms.lightLinear, me.pointLight.linear);
+	gl.uniform1f(me.program.uniforms.lightQuadratic, me.pointLight.quadratic);
 
 	// Set material uniforms
 	gl.uniform1f(me.program.uniforms.materialShine, me.material.shine);
@@ -466,10 +492,6 @@ Scene.prototype.Render = function () {
 		gl.enableVertexAttribArray(me.program.attribs.vNorm);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-
-
-
 
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, me.models[i].ibo);
 		gl.drawElements(gl.TRIANGLES, me.models[i].nPoints, gl.UNSIGNED_SHORT, 0);

@@ -23,7 +23,7 @@ var init = function () {
                     // Pre-loop setup
                     scene.models.tree.position([-2,-3,-5]);
                     scene.models.cube.position([0, 0, 0]);
-                    scene.models.sphere.position(scene.light.position);
+                    scene.models.sphere.position(scene.pointLight.position);
 
                     // Update loop
                     var loop = function(dt) {
