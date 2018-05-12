@@ -145,6 +145,9 @@ Scene.prototype.Load = function (callback) {
 	varying vec3 v_fragNormal;
 	varying vec3 v_fragPosition;
 
+	uniform vec3 u_viewPosition;
+
+	#define NUM_POINT_LIGHTS 1
 	struct PointLight {
 		vec3 position;
 
@@ -156,7 +159,35 @@ Scene.prototype.Load = function (callback) {
 		float linear;
 		float quadratic;
 	};
-	uniform PointLight u_light;
+	uniform PointLight u_pointLights[NUM_POINT_LIGHTS];
+
+	#define NUM_DIR_LIGHTS 1
+	struct DirLight {
+	    vec3 direction;
+
+	    vec3 ambient;
+	    vec3 diffuse;
+	    vec3 specular;
+	};
+	uniform DirLight u_dirLights[NUM_DIR_LIGHTS];
+
+	#define NUM_SPOT_LIGHTS 1
+	struct SpotLight {
+		vec3 position;
+		vec3 direction;
+
+		vec3 ambient;
+		vec3 diffuse;
+		vec3 specular;
+
+		float constant;
+		float linear;
+		float quadratic;
+
+		float innerCutOff;
+		float outerCutOff;
+	};
+	uniform SpotLight u_spotLights[NUM_SPOT_LIGHTS];
 
 	struct Material {
 		sampler2D diffuse;
@@ -165,36 +196,108 @@ Scene.prototype.Load = function (callback) {
 	};
 	uniform Material u_material;
 
-	uniform vec3 u_viewPosition;
-	uniform sampler2D sampler;
+
+	// Function prototypes
+	vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
+	vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
+	vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 
 	void main()
 	{
-		// ambient
-		vec3 ambient = u_light.ambient * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
-
-	    // diffuse
+		// properties
 	    vec3 norm = normalize(v_fragNormal);
-	    vec3 lightDir = normalize(u_light.position - v_fragPosition);
-	    float diff = max(dot(norm, lightDir), 0.0);
-	    vec3 diffuse = u_light.diffuse * diff * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
-
-	    // specular
 	    vec3 viewDir = normalize(u_viewPosition - v_fragPosition);
-	    vec3 reflectDir = reflect(-lightDir, norm);
-	    float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
-	    vec3 specular = u_light.specular * spec * vec3(texture2D(u_material.specular, v_fragTexCoord));
 
-		// Account for attenuation
-		float distance = length(u_light.position - v_fragPosition);
-		float attenuation = 1.0 / (u_light.constant + u_light.linear * distance +
-			u_light.quadratic * (distance * distance));
+		vec3 result = vec3(0.0);
+
+		// Directional lights
+		for(int i = 0; i < NUM_DIR_LIGHTS; i++)
+	        result += CalcDirLight(u_dirLights[i], norm, viewDir);
+
+	    // Point lights
+	    for(int i = 0; i < NUM_POINT_LIGHTS; i++)
+	        result += CalcPointLight(u_pointLights[i], norm, v_fragPosition, viewDir);
+
+	    gl_FragColor = vec4(result, 1.0);
+  	}
+
+  vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
+	  vec3 lightDir = normalize(light.position - fragPos);
+
+	  // diffuse shading
+	  float diff = max(dot(normal, lightDir), 0.0);
+
+	  // specular shading
+	  vec3 reflectDir = reflect(-lightDir, normal);
+	  float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
+
+	  // attenuation
+	  float distance    = length(light.position - fragPos);
+	  float attenuation = 1.0 / (light.constant + light.linear * distance +
+				   light.quadratic * (distance * distance));
+
+	  // combine results
+	  vec3 ambient  = light.ambient  * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
+	  vec3 diffuse  = light.diffuse  * diff * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
+	  vec3 specular = light.specular * spec * vec3(texture2D(u_material.specular, v_fragTexCoord));
+	  ambient  *= attenuation;
+	  diffuse  *= attenuation;
+	  specular *= attenuation;
+	  return (ambient + diffuse + specular);
+  }
+
+  	vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
+	    vec3 lightDir = normalize(-light.direction);
+
+	    // diffuse shading
+	    float diff = max(dot(normal, lightDir), 0.0);
+
+	    // specular shading
+	    vec3 reflectDir = reflect(-lightDir, normal);
+	    float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
+
+	    // combine results
+	    vec3 ambient  = light.ambient  * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
+	    vec3 diffuse  = light.diffuse  * diff * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
+	    vec3 specular = light.specular * spec * vec3(texture2D(u_material.specular, v_fragTexCoord));
+	    return (ambient + diffuse + specular);
+	}
+
+	vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
+
+		vec3 lightDir = normalize(light.position - fragPos);
+
+		// diffuse shading
+		float diff = max(dot(normal, lightDir), 0.0);
+
+		// specular shading
+		vec3 reflectDir = reflect(-lightDir, normal);
+		float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
+
+		// attenuation
+		float distance    = length(light.position - fragPos);
+		float attenuation = 1.0 / (light.constant + light.linear * distance +
+					 light.quadratic * (distance * distance));
+
+		// combine results
+		vec3 ambient  = light.ambient  * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
+		vec3 diffuse  = light.diffuse  * diff * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
+		vec3 specular = light.specular * spec * vec3(texture2D(u_material.specular, v_fragTexCoord));
 		ambient  *= attenuation;
 		diffuse  *= attenuation;
 		specular *= attenuation;
 
-	    gl_FragColor = vec4(ambient + diffuse + specular, 1.0);
-  }
+		// Clamp for spot light
+		float theta = dot(lightDir, normalize(-light.direction));
+		float epsilon   = light.innerCutOff- light.outerCutOff;
+		float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+
+		diffuse  *= intensity;
+		specular *= intensity;
+
+		return (ambient + diffuse + specular);
+	}
+
   `;
 	// TODO: change me.material to a single shine var instead of object
 	// TODO: add load texture function
@@ -232,13 +335,13 @@ Scene.prototype.Load = function (callback) {
 		viewPosition: gl.getUniformLocation(me.program, 'u_viewPosition'),
 
 		// Lighting uniforms
-		lightPosition: gl.getUniformLocation(me.program, 'u_light.position'),
-		lightAmbient: gl.getUniformLocation(me.program, 'u_light.ambient'),
-		lightDiffuse: gl.getUniformLocation(me.program, 'u_light.diffuse'),
-		lightSpecular: gl.getUniformLocation(me.program, 'u_light.specular'),
-		lightConstant: gl.getUniformLocation(me.program, 'u_light.constant'),
-		lightLinear: gl.getUniformLocation(me.program, 'u_light.linear'),
-		lightQuadratic: gl.getUniformLocation(me.program, 'u_light.quadratic'),
+		lightPosition: gl.getUniformLocation(me.program, 'u_pointLights[0].position'),
+		lightAmbient: gl.getUniformLocation(me.program, 'u_pointLights[0].ambient'),
+		lightDiffuse: gl.getUniformLocation(me.program, 'u_pointLights[0].diffuse'),
+		lightSpecular: gl.getUniformLocation(me.program, 'u_pointLights[0].specular'),
+		lightConstant: gl.getUniformLocation(me.program, 'u_pointLights[0].constant'),
+		lightLinear: gl.getUniformLocation(me.program, 'u_pointLights[0].linear'),
+		lightQuadratic: gl.getUniformLocation(me.program, 'u_pointLights[0].quadratic'),
 
 		// Material uniforms
 		materialShine: gl.getUniformLocation(me.program, 'u_material.shine'),
