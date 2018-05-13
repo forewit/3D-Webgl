@@ -39,6 +39,18 @@ THE SOFTWARE. */
            -y
 */
 
+// TODO: change me.material to a single shine var instead of object
+// TODO: move setting uniforms out of render loop
+// TODO: combine load and begin functions
+// TODO: add load texture function
+// TODO: overload the add models function (depending of number of textuers)
+// TODO: add spot lights, point lights, and directional lights
+// TODO: make materials plural instead of singular :)
+// USEFUL: ` + `
+/* TODO: documentation
+		* MUST unload and load scene before adding lights
+*/
+
 /**
  * A scene contains models, a camera, and phong lighting.
  * It contains functions for adding and removing models, moving
@@ -49,27 +61,25 @@ THE SOFTWARE. */
  * @param gl webgl context
  */
 var Scene = function (gl) {
-	this.gl = gl;
-}
-
-/**
- * Asynchronous function that starts the scene loading process
- * by setting up variables and initializing the vertex and
- * fragment shaders.
- *
- */
-Scene.prototype.Load = function (callback) {
 	var me = this;
-	var gl = me.gl;
+	me.gl = gl;
+	me.running = false;
 
-	// Initialize models and textures
+	//
+	// DEFAULT VALUES FOR LIGHTING, MODELS, ETC.
+	//
 	me.models = {};
 	me.textures = {};
 	me.specularMaps = {};
+	me.pointLights = [];
+	me.dirLights = [];
+	me.spotLights = [];
+
+	me.pointLightUniforms = [];
 
 	// Initialize default view and camera position
-	me.camera = new Camera(					/********* DEFAULTS *********/
-		vec3.fromValues(0, 0, 10),			// CAMERA POSITION
+	me.camera = new Camera(	                /********* DEFAULTS *********/
+		vec3.fromValues(0, 0, 10),          // CAMERA POSITION
 		vec3.fromValues(0, 0, 0),			// CAMERA LOOK AT
 		vec3.fromValues(0, 1, 0)			// CAMERA UP DIRECTION
 	);
@@ -85,24 +95,34 @@ Scene.prototype.Load = function (callback) {
 	);
 
 	// Setup light values
-	// SEE: https://learnopengl.com/Lighting/Light-casters
+	/*
 	me.pointLight = {
 		position: [2, 0.8, 2],
-
 		ambient: [0.2, 0.2, 0.2],
 		diffuse: [1, 1, 1],
 		specular: [1, 1, 1],
-
 		constant: 1.0,
 		linear: 0.045,
 		quadratic: 0.0075,
 	};
+	*/
 	me.material = {
 		shine: 100,
 	};
+}
+
+/**
+ * Asynchronous function that starts the scene loading process
+ * by setting up variables and initializing the vertex and
+ * fragment shaders.
+ *
+ */
+Scene.prototype.Load = function (callback) {
+	var me = this;
+	var gl = me.gl;
 
 	// Setup vertex shader
-	var vertexShaderText = `
+	const vertexShaderText = `
 	precision mediump float;
 
 	attribute vec3 a_vertPosition;
@@ -218,6 +238,10 @@ Scene.prototype.Load = function (callback) {
 	    for(int i = 0; i < NUM_POINT_LIGHTS; i++)
 	        result += CalcPointLight(u_pointLights[i], norm, v_fragPosition, viewDir);
 
+		// Spot lights
+		for(int i = 0; i < NUM_SPOT_LIGHTS; i++)
+	        result += CalcSpotLight(u_spotLights[i], norm, v_fragPosition, viewDir);
+
 	    gl_FragColor = vec4(result, 1.0);
   	}
 
@@ -299,11 +323,6 @@ Scene.prototype.Load = function (callback) {
 	}
 
   `;
-	// TODO: change me.material to a single shine var instead of object
-	// TODO: add load texture function
-	// TODO: overload the add models function (depending of number of textuers)
-	// TODO: add spot lights, point lights, and directional lights
-
 	var fs = gl.createShader(gl.FRAGMENT_SHADER);
 	gl.shaderSource(fs, fragmentShaderText);
 	gl.compileShader(fs);
@@ -312,7 +331,7 @@ Scene.prototype.Load = function (callback) {
 		return;
 	}
 
-	// Setup webgl program from vertex and fragment shaders
+	// Setup the gl program
 	var program = gl.createProgram();
 	gl.attachShader(program, vs);
 	gl.attachShader(program, fs);
@@ -327,6 +346,26 @@ Scene.prototype.Load = function (callback) {
 		return;
 	}
 	me.program = program;
+
+
+
+	// Set uniform locations
+	for (i=0, len=me.pointLights.length; i<len; i++) {
+		var uniforms = [
+			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].position'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].ambient'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].diffuse'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].specular'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].constant'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].linear'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].quadratic'),
+		];
+		me.pointLightUniforms.push(uniforms);
+	}
+
+
+
+	// TODO: moving the light and material uniform locations to when a light or model is added
 	me.program.uniforms = {
 		// Global uniforms
 		mProj: gl.getUniformLocation(me.program, 'u_proj'),
@@ -353,6 +392,18 @@ Scene.prototype.Load = function (callback) {
 		vNorm: gl.getAttribLocation(me.program, 'a_vertNormal'),
 		vTexCoord: gl.getAttribLocation(me.program, 'a_vertTexCoord'),
 	};
+
+	callback();
+};
+
+
+Scene.prototype.AddLight = function (pointLight, callback) {
+	var me = this;
+	if (!me.running) {
+		me.pointLights.push(pointLight);
+	} else {
+		console.log('Cannot add light while scene is active');
+	}
 
 	callback();
 };
@@ -398,6 +449,7 @@ Scene.prototype.Unload = function (callback) {
  */
 Scene.prototype.Begin = function (Update) {
 	var me = this;
+	me.running = true;
 
 	// Start the update and render loops
 	var previousFrame = performance.now();
@@ -418,6 +470,7 @@ Scene.prototype.Begin = function (Update) {
  *
  */
 Scene.prototype.Pause = function () {
+	me.running = false;
 	if (this.nextFrameHandle) {
 		cancelAnimationFrame(this.nextFrameHandle);
 	}
@@ -535,14 +588,17 @@ Scene.prototype.Render = function () {
 	gl.uniformMatrix4fv(me.program.uniforms.mView, gl.FALSE, me.viewMatrix);
 	gl.uniform3fv(me.program.uniforms.viewPosition, me.camera.position);
 
-	// Set lighting uniforms
-	gl.uniform3fv(me.program.uniforms.lightPosition, me.pointLight.position);
-	gl.uniform3fv(me.program.uniforms.lightAmbient, me.pointLight.ambient);
-	gl.uniform3fv(me.program.uniforms.lightDiffuse, me.pointLight.diffuse);
-	gl.uniform3fv(me.program.uniforms.lightSpecular, me.pointLight.specular);
-	gl.uniform1f(me.program.uniforms.lightConstant, me.pointLight.constant);
-	gl.uniform1f(me.program.uniforms.lightLinear, me.pointLight.linear);
-	gl.uniform1f(me.program.uniforms.lightQuadratic, me.pointLight.quadratic);
+	// Point light uniforms
+	for (i=0, len=me.pointLights.length; i<len; i++) {
+		gl.uniform3fv(me.pointLightUniforms[i][0], me.pointLights[i].position);
+		gl.uniform3fv(me.pointLightUniforms[i][1], me.pointLights[i].ambient);
+		gl.uniform3fv(me.pointLightUniforms[i][2], me.pointLights[i].diffuse);
+		gl.uniform3fv(me.pointLightUniforms[i][3], me.pointLights[i].specular);
+		gl.uniform1f(me.pointLightUniforms[i][4], me.pointLights[i].attenuation[0]);
+		gl.uniform1f(me.pointLightUniforms[i][5], me.pointLights[i].attenuation[1]);
+		gl.uniform1f(me.pointLightUniforms[i][6], me.pointLights[i].attenuation[2]);
+	}
+
 
 	// Set material uniforms
 	gl.uniform1f(me.program.uniforms.materialShine, me.material.shine);
@@ -600,151 +656,4 @@ Scene.prototype.Render = function () {
 		gl.drawElements(gl.TRIANGLES, me.models[i].nPoints, gl.UNSIGNED_SHORT, 0);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 	}
-};
-
-/**
- * @class Model data and buffers
- * @name Model
- *
- * @param gl webgl getContext
- * @param vertices array of model verticies [x, y, z, x, y, z, ...]
- * @param indices array listing triangle face indices
- * @param normals array of face normals
- * @param texCoords array of coordinates mapping vertices to the texture image
- */
-var Model = function (gl, vertices, indices, normals, texCoords) {
-    this.vbo = gl.createBuffer(); // Vertex buffer object
-    this.ibo = gl.createBuffer(); // Index buffer object
-    this.nbo = gl.createBuffer(); // Normal Buffer object
-    this.tbo = gl.createBuffer(); // Texture coordinate buffer object
-    this.nPoints = indices.length;
-
-    this.world = mat4.create()
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.tbo);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.nbo);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
-
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, null);
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-}
-
-/**
- * Position a model by translating its world matrix based
- * on the origin.
- *
- * @param {vec3} position target location [x, y, z]
- */
-Model.prototype.position = function (position) {
-    var origin = mat4.create();
-    mat4.translate(this.world, origin, position);
-};
-
-/**
- * @class movable Camera
- * @name Camera
- *
- * @param {vec3} position Camera location [x, y, z]
- * @param {vec3} lookAt Where camera is pointed [x, y, z]
- * @param {vec3} up	vector pointing in up direction
- */
-var Camera = function (position, lookAt, up) {
-	this.forward = vec3.create();
-	this.up = vec3.create();
-	this.right = vec3.create();
-
-	this.position = position;
-
-	vec3.subtract(this.forward, lookAt, this.position);
-	vec3.cross(this.right, this.forward, up);
-	vec3.cross(this.up, this.right, this.forward);
-
-	vec3.normalize(this.forward, this.forward);
-	vec3.normalize(this.right, this.right);
-	vec3.normalize(this.up, this.up);
-}
-
-/**
- * Returns the view matrix created by the camera
- *
- * @param out the recieving matrix
- * @returns {mat4} out
- */
-Camera.prototype.getViewMatrix = function (out) {
-	var lookAt = vec3.create();
-	vec3.add(lookAt, this.position, this.forward);
-	mat4.lookAt(out, this.position, lookAt, this.up);
-	return out;
-};
-
-/**
- * Rotates the camera up
- *
- * @param rad radians to rotate up
- */
-Camera.prototype.rotateUp = function (rad) {
-	var upMatrix = mat4.create();
-	mat4.rotate(upMatrix, upMatrix, rad, vec3.fromValues(1, 0, 0));
-	vec3.transformMat4(this.forward, this.forward, upMatrix);
-	this.realign();
-};
-
-/**
- * Rotates the camera right
- *
- * @param rad radians to rotate right
- */
-Camera.prototype.rotateRight = function (rad) {
-	var rightMatrix = mat4.create();
-	mat4.rotate(rightMatrix, rightMatrix, rad, vec3.fromValues(0, 0, 1));
-	vec3.transformMat4(this.forward, this.forward, rightMatrix);
-	this.realign();
-};
-
-/**
- * Moves the camera forward
- *
- * @param dist distance to move forward
- */
-Camera.prototype.moveForward = function (dist) {
-	vec3.scaleAndAdd(this.position, this.position, this.forward, dist);
-};
-
-/**
- * Moves the camera right
- *
- * @param dist distance to move right
- */
-Camera.prototype.moveRight = function (dist) {
-	vec3.scaleAndAdd(this.position, this.position, this.right, dist);
-};
-
-/**
- * Moves the camera up
- *
- * @param dist distance to move up
- */
-Camera.prototype.moveUp = function (dist) {
-	vec3.scaleAndAdd(this.position, this.position, this.up, dist);
-};
-
-/**
- * Realigns the camera, normalizing the directional values
- *
- */
-Camera.prototype.realign = function() {
-	vec3.cross(this.right, this.forward, this.up);
-	vec3.cross(this.up, this.right, this.forward);
-
-	vec3.normalize(this.forward, this.forward);
-	vec3.normalize(this.right, this.right);
-	vec3.normalize(this.up, this.up);
 };
