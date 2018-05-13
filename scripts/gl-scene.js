@@ -364,8 +364,6 @@ Scene.prototype.Load = function (callback) {
 		me.pointLightUniforms.push(uniforms);
 	}
 
-
-
 	// TODO: moving the light and material uniform locations to when a light or model is added
 	me.program.uniforms = {
 		// Global uniforms
@@ -373,15 +371,6 @@ Scene.prototype.Load = function (callback) {
 		mView: gl.getUniformLocation(me.program, 'u_view'),
 		mWorld: gl.getUniformLocation(me.program, 'u_world'),
 		viewPosition: gl.getUniformLocation(me.program, 'u_viewPosition'),
-
-		// Lighting uniforms
-		lightPosition: gl.getUniformLocation(me.program, 'u_pointLights[0].position'),
-		lightAmbient: gl.getUniformLocation(me.program, 'u_pointLights[0].ambient'),
-		lightDiffuse: gl.getUniformLocation(me.program, 'u_pointLights[0].diffuse'),
-		lightSpecular: gl.getUniformLocation(me.program, 'u_pointLights[0].specular'),
-		lightConstant: gl.getUniformLocation(me.program, 'u_pointLights[0].constant'),
-		lightLinear: gl.getUniformLocation(me.program, 'u_pointLights[0].linear'),
-		lightQuadratic: gl.getUniformLocation(me.program, 'u_pointLights[0].quadratic'),
 
 		// Material uniforms
 		materialShine: gl.getUniformLocation(me.program, 'u_material.shine'),
