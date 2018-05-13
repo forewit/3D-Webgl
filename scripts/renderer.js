@@ -179,7 +179,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     diffuse  *= attenuation;
     specular *= attenuation;
 
-    // Clamp for spot light
+    // clamp for spot light
     float inner = cos(light.innerCutOff);
     float outer = cos(light.outerCutOff);
 
