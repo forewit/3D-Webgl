@@ -46,7 +46,6 @@ var init = function () {
     scene.Add(redLight);
     scene.Add(blueLight);
 
-
     var loop = function () {
         r.render(scene, camera);
         requestAnimationFrame(loop);

@@ -201,7 +201,6 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
  */
 function Renderer(canvas) {
     var me = this;
-
     var gl = canvas.getContext('webgl');
     if (!gl) {
     	console.log('Failed to get WebGL context - trying experimental context');
@@ -212,6 +211,8 @@ function Renderer(canvas) {
     	return;
     }
     me.gl = gl;
+
+    me.models = [];
 
     // Setup vertex shader
     var vs = gl.createShader(gl.VERTEX_SHADER);
@@ -247,9 +248,8 @@ function Renderer(canvas) {
     }
     me.program = program;
 
-    // Set uniform locations
+    // Set global uniform locations
     me.uniforms = {};
-
 
     me.uniforms.mProj = gl.getUniformLocation(me.program, 'u_proj');
     me.uniforms.mView = gl.getUniformLocation(me.program, 'u_view');
@@ -259,6 +259,9 @@ function Renderer(canvas) {
     me.uniforms.materialShine = gl.getUniformLocation(me.program, 'u_material.shine'),
     me.uniforms.materialDiffuse = gl.getUniformLocation(me.program, 'u_material.diffuse');
     me.uniforms.materialSpecular = gl.getUniformLocation(me.program, 'u_material.specular');
+
+    // Initialize light uniform locations
+    me.uniforms.pointLights = [];
 
     // Set attribute locations
     me.attribs = {
@@ -273,77 +276,82 @@ Renderer.prototype.render = function (scene, camera) {
     var me = this;
     var gl = me.gl;
 
-    me.uniforms.pointLights = [];
-    for (i=0, len=scene.pointLights.length; i<len; i++) {
-        var lightUniforms = [
-            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].position'),
-            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].ambient'),
-            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].diffuse'),
-            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].specular'),
-            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].constant'),
-            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].linear'),
-            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].quadratic'),
-        ];
-        me.uniforms.pointLights.push(lightUniforms);
+
+    // Set per light uniforms
+    if (me.uniforms.pointLights.length != scene.pointLights.length) {
+        console.log('point lights');
+        for (i=0, len=scene.pointLights.length; i<len; i++) {
+            var lightUniforms = [
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].position'),
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].ambient'),
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].diffuse'),
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].specular'),
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].constant'),
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].linear'),
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].quadratic'),
+            ];
+            me.uniforms.pointLights.push(lightUniforms);
+        }
     }
-    // Load texture maps
-    me.models = [];
 
-    for (i=0, len=scene.models.length; i<len; i++) {
-        var model = {}
+    // Set per model uniform locations
+    if (me.models.length != scene.models.length) {
+        for (i=0, len=scene.models.length; i<len; i++) {
+            var model = {}
 
-        // Point data
-        model.vbo = gl.createBuffer(); // Vertex buffer object
-        model.ibo = gl.createBuffer(); // Index buffer object
-        model.nbo = gl.createBuffer(); // Normal Buffer object
-        model.tbo = gl.createBuffer(); // Texture coordinate buffer object
-        model.nPoints = scene.models[i].indices.length;
+            // Point data
+            model.vbo = gl.createBuffer(); // Vertex buffer object
+            model.ibo = gl.createBuffer(); // Index buffer object
+            model.nbo = gl.createBuffer(); // Normal Buffer object
+            model.tbo = gl.createBuffer(); // Texture coordinate buffer object
+            model.nPoints = scene.models[i].indices.length;
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, model.vbo);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].vertices), gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ARRAY_BUFFER, model.vbo);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].vertices), gl.STATIC_DRAW);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, model.tbo);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].texCoords), gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ARRAY_BUFFER, model.tbo);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].texCoords), gl.STATIC_DRAW);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, model.nbo);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].normals), gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ARRAY_BUFFER, model.nbo);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].normals), gl.STATIC_DRAW);
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.ibo);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(scene.models[i].indices), gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.ibo);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(scene.models[i].indices), gl.STATIC_DRAW);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
-        // Texture data
-        var texture = gl.createTexture();
-        model.texture = texture;
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texImage2D(
-            gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
-            gl.UNSIGNED_BYTE,
-            scene.models[i].texImg
-        );
-        var specMap = gl.createTexture();
-        model.specMap = specMap;
-        gl.bindTexture(gl.TEXTURE_2D, specMap);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texImage2D(
-            gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
-            gl.UNSIGNED_BYTE,
-            scene.models[i].specMapImg
-        );
-        gl.bindTexture(gl.TEXTURE_2D, null);
+            // Texture data
+            var texture = gl.createTexture();
+            model.texture = texture;
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texImage2D(
+                gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                gl.UNSIGNED_BYTE,
+                scene.models[i].texImg
+            );
+            var specMap = gl.createTexture();
+            model.specMap = specMap;
+            gl.bindTexture(gl.TEXTURE_2D, specMap);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texImage2D(
+                gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                gl.UNSIGNED_BYTE,
+                scene.models[i].specMapImg
+            );
+            gl.bindTexture(gl.TEXTURE_2D, null);
 
-        me.models.push(model);
+            me.models.push(model);
+        }
     }
 
     gl.enable(gl.DEPTH_TEST);
@@ -378,7 +386,7 @@ Renderer.prototype.render = function (scene, camera) {
 	gl.uniform1i(me.uniforms.materialSpecular, 1) // Texture unit 1
 
     // TODO: iterates over too much?????
-    for (i=0, len=scene.models.length; i<len; i++) {
+    for (i=0, len=me.models.length; i<len; i++) {
         // Bind texture
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, me.models[i].texture);
@@ -404,7 +412,7 @@ Renderer.prototype.render = function (scene, camera) {
 		);
 		gl.enableVertexAttribArray(me.attribs.vPos);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.models[i].tbo);
+        gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].tbo);
 		gl.vertexAttribPointer(
 			me.attribs.vTexCoord,
 			2, gl.FLOAT, gl.FALSE,
