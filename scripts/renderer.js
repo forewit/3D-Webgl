@@ -201,9 +201,8 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
  * Handles all webgl functions
  *
  */
-var renderer = function (gl) {
+function renderer(gl) {
     var me = this;
-    me.gl = gl;
 
     // Setup vertex shader
     var vs = gl.createShader(gl.VERTEX_SHADER);
@@ -240,25 +239,15 @@ var renderer = function (gl) {
     me.program = program;
 
     // Set uniform locations
-    me.uniforms.pointLights = [];
-	for (i=0, len=scene.pointLights.length; i<len; i++) {
-		var uniforms = [
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].position'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].ambient'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].diffuse'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].specular'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].constant'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].linear'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].quadratic'),
-		];
-		me.uniforms.pointLights.push(uniforms);
-	}
+    me.uniforms = {};
+
+
     me.uniforms.mProj = gl.getUniformLocation(me.program, 'u_proj');
     me.uniforms.mView = gl.getUniformLocation(me.program, 'u_view');
     me.uniforms.mWorld = gl.getUniformLocation(me.program, 'u_world');
     me.uniforms.viewPos = gl.getUniformLocation(me.program, 'u_viewPosition');
 
-    me.uniforms.materialShine = gl.getAttribLocation(me.program, 'a_vertPosition');
+    me.uniforms.materialShine = gl.getUniformLocation(me.program, 'u_material.shine'),
     me.uniforms.materialDiffuse = gl.getUniformLocation(me.program, 'u_material.diffuse');
     me.uniforms.materialSpecular = gl.getUniformLocation(me.program, 'u_material.specular');
 
@@ -268,11 +257,172 @@ var renderer = function (gl) {
 		vNorm: gl.getAttribLocation(me.program, 'a_vertNormal'),
 		vTexCoord: gl.getAttribLocation(me.program, 'a_vertTexCoord'),
 	};
-
-
-    // TODO: Load Model texture maps
 }
 
 renderer.prototype.render = function (scene, camera) {
+    var me = this;
+    var gl = scene.gl;
 
+
+
+    me.uniforms.pointLights = [];
+    for (i=0, len=scene.pointLights.length; i<len; i++) {
+        var lightUniforms = [
+            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].position'),
+            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].ambient'),
+            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].diffuse'),
+            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].specular'),
+            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].constant'),
+            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].linear'),
+            gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].quadratic'),
+        ];
+        me.uniforms.pointLights.push(lightUniforms);
+    }
+    // Load texture maps
+    me.models = [];
+
+    for (i=0, len=scene.models.length; i<len; i++) {
+        var model = {}
+
+        // Point data
+        model.vbo = gl.createBuffer(); // Vertex buffer object
+        model.ibo = gl.createBuffer(); // Index buffer object
+        model.nbo = gl.createBuffer(); // Normal Buffer object
+        model.tbo = gl.createBuffer(); // Texture coordinate buffer object
+        model.nPoints = scene.models[i].indices.length;
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].vertices), gl.STATIC_DRAW);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.tbo);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].texCoords), gl.STATIC_DRAW);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.nbo);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].normals), gl.STATIC_DRAW);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.ibo);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(scene.models[i].indices), gl.STATIC_DRAW);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+        // Texture data
+        var texture = gl.createTexture();
+        model.texture = texture;
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texImage2D(
+            gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            scene.models[i].texImg
+        );
+        var specMap = gl.createTexture();
+        model.specMap = specMap;
+        gl.bindTexture(gl.TEXTURE_2D, specMap);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texImage2D(
+            gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            scene.models[i].specMapImg
+        );
+        gl.bindTexture(gl.TEXTURE_2D, null);
+
+        me.models.push(model);
+    }
+
+
+
+
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
+    gl.frontFace(gl.CCW);
+    gl.cullFace(gl.BACK);
+
+    gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
+    gl.clearColor(0, 0, 0, 0.3);
+    gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
+
+    gl.useProgram(me.program);
+
+
+
+    gl.uniformMatrix4fv(me.uniforms.mView, gl.FALSE, camera.getViewMatrix());
+    gl.uniformMatrix4fv(me.uniforms.mProj, gl.FALSE, scene.projMatrix);
+    gl.uniform3fv(me.uniforms.viewPos, camera.position);
+
+    // Point light uniforms
+	for (i=0, len=me.uniforms.pointLights.length; i<len; i++) {
+		gl.uniform3fv(me.uniforms.pointLights[i][0], scene.pointLights[i].position);
+		gl.uniform3fv(me.uniforms.pointLights[i][1], scene.pointLights[i].ambient);
+		gl.uniform3fv(me.uniforms.pointLights[i][2], scene.pointLights[i].diffuse);
+		gl.uniform3fv(me.uniforms.pointLights[i][3], scene.pointLights[i].specular);
+		gl.uniform1f(me.uniforms.pointLights[i][4], scene.pointLights[i].attenuation[0]);
+		gl.uniform1f(me.uniforms.pointLights[i][5], scene.pointLights[i].attenuation[1]);
+		gl.uniform1f(me.uniforms.pointLights[i][6], scene.pointLights[i].attenuation[2]);
+	}
+
+    // Set material uniforms
+	gl.uniform1f(me.uniforms.materialShine, scene.material.shine);
+	gl.uniform1i(me.uniforms.materialDiffuse, 0) // Texture unit 0
+	gl.uniform1i(me.uniforms.materialSpecular, 1) // Texture unit 1
+
+    // TODO: iterates over too much?????
+    for (i=0, len=scene.models.length; i<len; i++) {
+        // Bind texture
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, me.models[i].texture);
+
+		// Bind specular mapping
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, me.models[i].specMap);
+
+        // Per object uniforms
+        gl.uniformMatrix4fv(
+            me.uniforms.mWorld,
+            gl.FALSE,
+            scene.models[i].world
+        );
+
+        // Set attributes
+		gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].vbo);
+		gl.vertexAttribPointer(
+			me.attribs.vPos,
+			3, gl.FLOAT, gl.FALSE,
+			3 * Float32Array.BYTES_PER_ELEMENT,
+			0
+		);
+		gl.enableVertexAttribArray(me.attribs.vPos);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.models[i].tbo);
+		gl.vertexAttribPointer(
+			me.attribs.vTexCoord,
+			2, gl.FLOAT, gl.FALSE,
+			2 * Float32Array.BYTES_PER_ELEMENT,
+			0
+		);
+		gl.enableVertexAttribArray(me.attribs.vTexCoord)
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].nbo);
+		gl.vertexAttribPointer(
+			me.attribs.vNorm,
+			3, gl.FLOAT, gl.FALSE,
+			3 * Float32Array.BYTES_PER_ELEMENT,
+			0
+		);
+		gl.enableVertexAttribArray(me.attribs.vNorm);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, me.models[i].ibo);
+		gl.drawElements(gl.TRIANGLES, me.models[i].nPoints, gl.UNSIGNED_SHORT, 0);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    }
 };

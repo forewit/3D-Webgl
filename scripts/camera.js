@@ -30,11 +30,11 @@ var Camera = function (position, lookAt, up) {
  * @param out the recieving matrix
  * @returns {mat4} out
  */
-Camera.prototype.getViewMatrix = function (out) {
+Camera.prototype.getViewMatrix = function () {
+	var viewMatrix = mat4.create();
 	var lookAt = vec3.create();
 	vec3.add(lookAt, this.position, this.forward);
-	mat4.lookAt(out, this.position, lookAt, this.up);
-	return out;
+	return mat4.lookAt(viewMatrix, this.position, lookAt, this.up);
 };
 
 /**
