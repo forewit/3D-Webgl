@@ -43,3 +43,49 @@ Model.prototype.position = function (position) {
     var origin = mat4.create();
     mat4.translate(this.world, origin, position);
 };
+
+var model = function (id, jsonURL, textureURL, specMapURL, callback) {
+	var me = this;
+
+	// Load model json
+	var request = new XMLHttpRequest();
+	request.open('GET', jsonURL, true);
+	request.onload = function () {
+		if (request.status > 199 && request.status < 300) {
+			try {
+				var modelJSON = JSON.parse(request.responseText);
+
+				// Load texture image
+				var texImg = new Image();
+				texImg.onload = function () {
+
+                    // Load specular map image
+					var specMapImg = new Image();
+					specMapImg.onload = function () {
+
+                        me.id = id;
+                        me.vertices = modelJSON.data.attributes.position.array;
+                        me.indices = modelJSON.data.index.array;
+                        me.normals = modelJSON.data.attributes.normal.array;
+                        me.texCoords = modelJSON.data.attributes.uv.array;
+                        me.texImg = texImg;
+                        me.specMapImg = specMapImg;
+
+                        callback();
+					};
+					specMapImg.src = specMapURL;
+				};
+				texImg.src = textureURL;
+			} catch (e) {
+				// Failed to load image or parse json
+				console.error(e);
+				return;
+			}
+		} else {
+			// Failed to load json
+			console.error(request.status);
+			return;
+		}
+	};
+	request.send();
+};

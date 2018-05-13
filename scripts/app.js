@@ -16,20 +16,45 @@ var init = function () {
 
     scene = new Scene(gl);
 
+    var redPos = [2, 0.8, 2];
+    var bluePos = [3,0,2];
+    var red = new PointLight(
+        redPos,
+        [0,0,0],
+        [0.2, 0.2, 1],
+        [0.2, 0.2, 1],
+        [1.0, 0.045, 0.0075]
+    );
+    var blue = new PointLight(
+        bluePos,
+        [0,0,0],
+        [1, 0.2, 0.2],
+        [1, 0.2, 0.2],
+        [1.0, 0.045, 0.0075]
+    );
+
+    scene.AddLight(red);
+    scene.AddLight(blue);
+
+    var test = new model(
+        'test',
+        './models/cube.json',
+        './models/sphere.png',
+        './models/sphere_specular.png',
+        function() {
+            scene.LoadModel(test);
+        }
+    )
+
     scene.AddModel('tree', './models/tree.json', './models/tree.png', './models/tree_specular.png', function (){
         scene.AddModel('cube', './models/cube.json', './models/cube.png', './models/cube_specular.png', function(){
-            scene.AddModel('sphere', './models/sphere.json', './models/sphere.png', './models/sphere_specular.png', function(){
-                scene.AddModel('sphere2', './models/sphere.json', './models/sphere.png', './models/sphere_specular.png', function(){
-                    // Pre-loop setup
-
-                    var light1Pos = [2, 0.8, 2];
-                    var light2Pos = [0,0,2];
+            scene.AddModel('red', './models/sphere.json', './models/sphere.png', './models/sphere_specular.png', function(){
+                scene.AddModel('blue', './models/sphere.json', './models/sphere.png', './models/sphere_specular.png', function(){
 
                     scene.models.tree.position([-2,-3,-5]);
-                    scene.models.cube.position([0, 0, 0]);
-                    scene.models.sphere.position(light1Pos);
-                    scene.models.sphere2.position(light2Pos);
-
+                    scene.models.cube.position([-5, 0, 0]);
+                    scene.models.red.position(redPos);
+                    scene.models.blue.position(bluePos);
 
                     // Update loop
                     var loop = function(dt) {
@@ -41,27 +66,8 @@ var init = function () {
                         //scene.camera.getViewMatrix(scene.viewMatrix);
                     };
 
-                    var light = new PointLight(
-                        light1Pos,
-                        [0,0,0],
-                        [0.2, 0.2, 1],
-                        [0.2, 0.2, 1],
-                        [1.0, 0.045, 0.0075]
-                    );
-                    var light2 = new PointLight(
-                        light2Pos,
-                        [0,0,0],
-                        [1, 0.2, 0.2],
-                        [1, 0.2, 0.2],
-                        [1.0, 0.045, 0.0075]
-                    );
-
-                    scene.AddLight(light, function() {
-                        scene.AddLight(light2, function() {
-                            scene.Load( function (){
-                                scene.Begin(loop);
-                            });
-                        });
+                    scene.Load( function (){
+                        scene.Begin(loop);
                     });
 
 

@@ -398,15 +398,13 @@ Scene.prototype.Load = function (callback) {
 };
 
 
-Scene.prototype.AddLight = function (pointLight, callback) {
+Scene.prototype.AddLight = function (pointLight) {
 	var me = this;
 	if (!me.running) {
 		me.pointLights.push(pointLight);
 	} else {
 		console.log('Cannot add light while scene is active');
 	}
-
-	callback();
 };
 
 /**
@@ -477,6 +475,70 @@ Scene.prototype.Pause = function () {
 	}
 };
 
+
+Scene.prototype.LoadModel = function (model) {
+	var me = this;
+	var gl = me.gl;
+
+	var newModel = {};
+	newModel.vbo = gl.createBuffer(); // Vertex buffer object
+	newModel.ibo = gl.createBuffer(); // Index buffer object
+	newModel.nbo = gl.createBuffer(); // Normal Buffer object
+	newModel.tbo = gl.createBuffer(); // Texture coordinate buffer object
+	newModel.nPoints = model.indices.length;
+
+	newModel.world = mat4.create()
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, newModel.vbo);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(model.vertices), gl.STATIC_DRAW);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, newModel.tbo);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(model.texCoords), gl.STATIC_DRAW);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, newModel.nbo);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(model.normals), gl.STATIC_DRAW);
+
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(model.indices), gl.STATIC_DRAW);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, null);
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+	me.models[model.id] = newModel;
+
+	// Create texture
+	var texture = me.gl.createTexture();
+	me.textures[model.id] = texture;
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+	gl.texImage2D(
+		gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+		gl.UNSIGNED_BYTE,
+		model.texImg
+	);
+	gl.bindTexture(gl.TEXTURE_2D, null);
+
+	// Create specular map texture
+	var specMap = me.gl.createTexture();
+	me.specularMaps[model.id] = specMap;
+	gl.bindTexture(gl.TEXTURE_2D, specMap);
+	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+	gl.texImage2D(
+		gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+		gl.UNSIGNED_BYTE,
+		model.specMapImg
+	);
+	gl.bindTexture(gl.TEXTURE_2D, null);
+
+};
 /**
  * Adds a model to the scene. The json file must be formated
  * like the three.js blender exporter. Also, each model must include
