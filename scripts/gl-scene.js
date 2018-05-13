@@ -59,8 +59,7 @@ THE SOFTWARE. */
  * @name Scene
  * @param gl webgl context
  */
-var Scene = function (gl) {
-	this.gl = gl;
+var Scene = function () {
 	this.models = [];
 	this.pointLights = [];
 	this.dirLights = [];
@@ -68,21 +67,17 @@ var Scene = function (gl) {
 	this.material = {
 		shine: 100,
 	};
-
-	this.projMatrix = mat4.create();
-	mat4.perspective(
-		this.projMatrix,
-		glMatrix.toRadian(45),				// FIELD OF VIEW
-		gl.canvas.clientWidth / gl.canvas.clientHeight,
-		0.1,								// MIN VIEW DISTANCE
-		100.0								// MAX VIEW DISTANCE
-	);
 }
 
-Scene.prototype.AddLight = function (pointLight) {
-	this.pointLights.push(pointLight);
-};
-
-Scene.prototype.add = function (model) {
-	this.models.push(model);
+Scene.prototype.Add = function (object) {
+	switch(object.constructor.name) {
+	    case "Model":
+	        this.models.push(object);
+	        break;
+	    case "PointLight":
+	        this.pointLights.push(object);
+	        break;
+	    default:
+	        //code block
+	}
 };

@@ -192,8 +192,6 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 
 `;
 
-
-
 /**
  * @class renderer
  * @name renderer
@@ -201,8 +199,19 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
  * Handles all webgl functions
  *
  */
-function renderer(gl) {
+function Renderer(canvas) {
     var me = this;
+
+    var gl = canvas.getContext('webgl');
+    if (!gl) {
+    	console.log('Failed to get WebGL context - trying experimental context');
+    	gl = canvas.getContext('experimental-webgl');
+    }
+	if (!gl) {
+    	console.error('Your browser does not support WebGL - please use a different browser\nGoogleChrome works great!');
+    	return;
+    }
+    me.gl = gl;
 
     // Setup vertex shader
     var vs = gl.createShader(gl.VERTEX_SHADER);
@@ -257,13 +266,12 @@ function renderer(gl) {
 		vNorm: gl.getAttribLocation(me.program, 'a_vertNormal'),
 		vTexCoord: gl.getAttribLocation(me.program, 'a_vertTexCoord'),
 	};
+
 }
 
-renderer.prototype.render = function (scene, camera) {
+Renderer.prototype.render = function (scene, camera) {
     var me = this;
-    var gl = scene.gl;
-
-
+    var gl = me.gl;
 
     me.uniforms.pointLights = [];
     for (i=0, len=scene.pointLights.length; i<len; i++) {
@@ -338,9 +346,6 @@ renderer.prototype.render = function (scene, camera) {
         me.models.push(model);
     }
 
-
-
-
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
     gl.frontFace(gl.CCW);
@@ -352,10 +357,8 @@ renderer.prototype.render = function (scene, camera) {
 
     gl.useProgram(me.program);
 
-
-
     gl.uniformMatrix4fv(me.uniforms.mView, gl.FALSE, camera.getViewMatrix());
-    gl.uniformMatrix4fv(me.uniforms.mProj, gl.FALSE, scene.projMatrix);
+    gl.uniformMatrix4fv(me.uniforms.mProj, gl.FALSE, camera.projMatrix);
     gl.uniform3fv(me.uniforms.viewPos, camera.position);
 
     // Point light uniforms
