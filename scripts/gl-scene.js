@@ -39,6 +39,7 @@ THE SOFTWARE. */
            -y
 */
 
+// TODO: replace objects with arrays where possible
 // TODO: change me.material to a single shine var instead of object
 // TODO: move setting uniforms out of render loop
 // TODO: combine load and begin functions
@@ -167,7 +168,7 @@ Scene.prototype.Load = function (callback) {
 
 	uniform vec3 u_viewPosition;
 
-	#define NUM_POINT_LIGHTS 1
+	#define NUM_POINT_LIGHTS 2
 	struct PointLight {
 		vec3 position;
 
