@@ -180,9 +180,12 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     specular *= attenuation;
 
     // Clamp for spot light
+    float inner = cos(light.innerCutOff);
+    float outer = cos(light.outerCutOff);
+
     float theta = dot(lightDir, normalize(-light.direction));
-    float epsilon   = light.innerCutOff- light.outerCutOff;
-    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+    float epsilon   = inner - outer;
+    float intensity = clamp((theta - outer) / epsilon, 0.0, 1.0);
 
     diffuse  *= intensity;
     specular *= intensity;
@@ -262,6 +265,8 @@ function Renderer(canvas) {
 
     // Initialize light uniform locations
     me.uniforms.pointLights = [];
+    me.uniforms.dirLights = [];
+    me.uniforms.spotLights = [];
 
     // Set attribute locations
     me.attribs = {
@@ -291,6 +296,36 @@ Renderer.prototype.render = function (scene, camera) {
                 gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].quadratic'),
             ];
             me.uniforms.pointLights.push(lightUniforms);
+        }
+    }
+    if (me.uniforms.spotLights.length != scene.spotLights.length) {
+        console.log('spot lights');
+        for (i=0, len=scene.spotLights.length; i<len; i++) {
+            var lightUniforms = [
+                gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].position'),
+                gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].direction'),
+                gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].ambient'),
+                gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].diffuse'),
+                gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].specular'),
+                gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].constant'),
+                gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].linear'),
+                gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].quadratic'),
+                gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].innerCutOff'),
+                gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].outerCutOff'),
+            ];
+            me.uniforms.spotLights.push(lightUniforms);
+        }
+    }
+    if (me.uniforms.dirLights.length != scene.dirLights.length) {
+        console.log('directional lights');
+        for (i=0, len=scene.dirLights.length; i<len; i++) {
+            var lightUniforms = [
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].direction'),
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].ambient'),
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].diffuse'),
+                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].specular'),
+            ];
+            me.uniforms.dirLights.push(lightUniforms);
         }
     }
 
@@ -378,6 +413,25 @@ Renderer.prototype.render = function (scene, camera) {
 		gl.uniform1f(me.uniforms.pointLights[i][4], scene.pointLights[i].attenuation[0]);
 		gl.uniform1f(me.uniforms.pointLights[i][5], scene.pointLights[i].attenuation[1]);
 		gl.uniform1f(me.uniforms.pointLights[i][6], scene.pointLights[i].attenuation[2]);
+	}
+    for (i=0, len=me.uniforms.spotLights.length; i<len; i++) {
+        gl.uniform3fv(me.uniforms.spotLights[i][0], scene.spotLights[i].position);
+        gl.uniform3fv(me.uniforms.spotLights[i][1], scene.spotLights[i].direction);
+        gl.uniform3fv(me.uniforms.spotLights[i][2], scene.spotLights[i].ambient);
+        gl.uniform3fv(me.uniforms.spotLights[i][3], scene.spotLights[i].diffuse);
+        gl.uniform3fv(me.uniforms.spotLights[i][4], scene.spotLights[i].specular);
+        gl.uniform1f(me.uniforms.spotLights[i][5], scene.spotLights[i].attenuation[0]);
+        gl.uniform1f(me.uniforms.spotLights[i][6], scene.spotLights[i].attenuation[1]);
+        gl.uniform1f(me.uniforms.spotLights[i][7], scene.spotLights[i].attenuation[2]);
+        gl.uniform1f(me.uniforms.spotLights[i][8], scene.spotLights[i].innerCutOff);
+        gl.uniform1f(me.uniforms.spotLights[i][9], scene.spotLights[i].outerCutOff);
+
+    }
+    for (i=0, len=me.uniforms.dirLights.length; i<len; i++) {
+		gl.uniform3fv(me.uniforms.dirLights[i][0], scene.dirLights[i].direction);
+		gl.uniform3fv(me.uniforms.dirLights[i][1], scene.dirLights[i].ambient);
+		gl.uniform3fv(me.uniforms.dirLights[i][2], scene.dirLights[i].diffuse);
+		gl.uniform3fv(me.uniforms.dirLights[i][3], scene.dirLights[i].specular);
 	}
 
     // Set material uniforms

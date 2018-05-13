@@ -7,43 +7,44 @@ var init = function () {
     scene = new Scene();
     var r = new Renderer(canvas);
 
-
-
-    var blueLight = new PointLight(
-        [2, 0.8, 2],
-        [0,0,0],
-        [0.2, 0.2, 1],
-        [0.2, 0.2, 1],
-        [1.0, 0.045, 0.0075]
-    );
-    var redLight = new PointLight(
-        [3,0,2],
-        [0,0,0],
-        [1, 0.2, 0.2],
-        [1, 0.2, 0.2],
-        [1.0, 0.045, 0.0075]
-    );
     var camera = new Camera(
-        Math.PI/4,
+        glMatrix.toRadian(45),
 		canvas.clientWidth / canvas.clientHeight,
 		0.1,
 		100.0
 	);
     camera.setPosition(
-        [0,0,10],
+        [0,0,5],
         [0,0,0],
         [0,1,0]
     );
+    var blueLight = new PointLight(
+        camera.position,
+        [0,0,0],
+        [0.2, 0.2, 1],
+        [0.2, 0.2, 1],
+        [1.0, 0.045, 0.0075]
+    );
+    var spotLight = new SpotLight(
+        camera.position,
+        camera.forward,
+        [0.0, 0.0, 0.0],
+        [1.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0],
+        [1.0, 0.045, 0.0075],
+        glMatrix.toRadian(5),
+        glMatrix.toRadian(6)
+    );
 
-    var tree = new Model(
-        './models/tree.json',
-        './models/tree.png',
-        './models/tree_specular.png',
+    var cube = new Model(
+        './models/cube.json',
+        './models/cube.png',
+        './models/cube_specular.png',
         function () {
-            scene.Add(tree);
+            scene.Add(cube);
         }
     );
-    scene.Add(redLight);
+    scene.Add(spotLight);
     scene.Add(blueLight);
 
     var loop = function () {
