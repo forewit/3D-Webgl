@@ -332,6 +332,7 @@ Renderer.prototype.render = function (scene, camera) {
 
     // Set per model uniform locations
     if (me.models.length != scene.models.length) {
+        // Add new models
         for (i=0, len=scene.models.length; i<len; i++) {
             var model = {}
 
@@ -341,6 +342,7 @@ Renderer.prototype.render = function (scene, camera) {
             model.nbo = gl.createBuffer(); // Normal Buffer object
             model.tbo = gl.createBuffer(); // Texture coordinate buffer object
             model.nPoints = scene.models[i].indices.length;
+            model.world = scene.models[i].world;
 
             gl.bindBuffer(gl.ARRAY_BUFFER, model.vbo);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].vertices), gl.STATIC_DRAW);
@@ -386,7 +388,12 @@ Renderer.prototype.render = function (scene, camera) {
             );
             gl.bindTexture(gl.TEXTURE_2D, null);
 
-            me.models.push(model);
+            me.models[i] = model;
+        }
+    } else {
+        // Update model world matrices
+        for (i=0, len=scene.models.length; i<len; i++) {
+            me.models[i].world = scene.models[i].world;
         }
     }
 
@@ -451,11 +458,13 @@ Renderer.prototype.render = function (scene, camera) {
 		gl.bindTexture(gl.TEXTURE_2D, me.models[i].specMap);
 
         // Per object uniforms
+        //TODO verify e
         gl.uniformMatrix4fv(
             me.uniforms.mWorld,
             gl.FALSE,
-            scene.models[i].world
+            me.models[i].world
         );
+
 
         // Set attributes
 		gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].vbo);
