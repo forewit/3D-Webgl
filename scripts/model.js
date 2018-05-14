@@ -1,5 +1,6 @@
 var Model = function (jsonURL, textureURL, specMapURL, callback) {
 	var me = this;
+	me.world = mat4.create();
 
 	loadJSONResource(jsonURL, function(jsonErr, modelJSON) {
         if (jsonErr) {
@@ -17,7 +18,6 @@ var Model = function (jsonURL, textureURL, specMapURL, callback) {
                             return;
                         } else {
 
-                            me.world = mat4.create()
                             me.vertices = modelJSON.data.attributes.position.array;
                             me.indices = modelJSON.data.index.array;
                             me.normals = modelJSON.data.attributes.normal.array;
@@ -40,7 +40,7 @@ var Model = function (jsonURL, textureURL, specMapURL, callback) {
  *
  * @param {vec3} position target location [x, y, z]
  */
-Model.prototype.position = function (position) {
+Model.prototype.Position = function (position) {
     var origin = mat4.create();
     mat4.translate(this.world, origin, position);
 };

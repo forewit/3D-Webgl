@@ -18,13 +18,13 @@ var init = function () {
         [0,0,0],
         [0,1,0]
     );
-    var blueLight = new PointLight(
-        camera.position,
-        [0,0,0],
-        [0.2, 0.2, 1],
-        [0.2, 0.2, 1],
-        [1.0, 0.045, 0.0075]
+    var sun = new DirLight(
+        [-0.2, -1, -0.2],
+        [0.2, 0.2, 0.2],
+        [0.7, 0.7, 0.7],
+        [0.7, 0.7, 0.7]
     );
+    scene.Add(sun);
     var spotLight = new SpotLight(
         camera.position,
         camera.forward,
@@ -35,7 +35,7 @@ var init = function () {
         glMatrix.toRadian(5),
         glMatrix.toRadian(6)
     );
-
+    scene.Add(spotLight);
     var cube = new Model(
         './models/cube.json',
         './models/cube.png',
@@ -44,11 +44,32 @@ var init = function () {
             scene.Add(cube);
         }
     );
-    scene.Add(spotLight);
-    scene.Add(blueLight);
+    cube.Position([3,-2,-7]);
+    var tree = new Model(
+        './models/tree.json',
+        './models/tree.png',
+        './models/tree_specular.png',
+        function () {
+            scene.Add(tree);
+        }
+    );
+    tree.Position([0,-3,-10]);
 
+
+    var t0 = performance.now();
     var loop = function () {
+        var perSec = (performance.now() - t0) / 1000;
+
+        mat4.rotate(
+            cube.world,
+            cube.world,
+            glMatrix.toRadian(45) * perSec,
+            [0,1,0]
+        )
+
         r.render(scene, camera);
+
+        t0 = performance.now();
         requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);

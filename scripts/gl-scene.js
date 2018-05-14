@@ -80,6 +80,9 @@ Scene.prototype.Add = function (object) {
 		case "SpotLight":
 			this.spotLights.push(object);
 			break;
+		case "DirLight":
+			this.dirLights.push(object);
+			break;
 	    default:
 	        //code block
 	}

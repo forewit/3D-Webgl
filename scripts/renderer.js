@@ -152,6 +152,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
     vec3 ambient  = light.ambient  * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
     vec3 diffuse  = light.diffuse  * diff * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
     vec3 specular = light.specular * spec * vec3(texture2D(u_material.specular, v_fragTexCoord));
+
     return (ambient + diffuse + specular);
 }
 
@@ -320,10 +321,10 @@ Renderer.prototype.render = function (scene, camera) {
         console.log('directional lights');
         for (i=0, len=scene.dirLights.length; i<len; i++) {
             var lightUniforms = [
-                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].direction'),
-                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].ambient'),
-                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].diffuse'),
-                gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].specular'),
+                gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].direction'),
+                gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].ambient'),
+                gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].diffuse'),
+                gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].specular'),
             ];
             me.uniforms.dirLights.push(lightUniforms);
         }

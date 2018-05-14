@@ -26,3 +26,9 @@ var SpotLight = function (position, direction, ambient, diffuse, specular, atten
     this.innerCutOff = innerCutOff;
     this.outerCutOff = outerCutOff;
 }
+var DirLight = function (direction, ambient, diffuse, specular) {
+    this.direction  = direction;
+    this.ambient = ambient;
+    this.diffuse = diffuse;
+    this.specular = specular;
+}
