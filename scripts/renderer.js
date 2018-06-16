@@ -328,9 +328,11 @@ Renderer.prototype.render = function (scene, camera) {
     }
 
     // Set per model uniform locations
+    // TODO: PROBLEM this will rebuild ALL models, every time a scene.Add function is called
     if (me.models.length != scene.models.length) {
         // Add new models
         for (i=0, len=scene.models.length; i<len; i++) {
+            console.log("added model");
             var model = {}
 
             // Point data
@@ -573,5 +575,5 @@ Renderer.prototype.load = async function (modelData) {
     setupTexture(model.data.texImg);
     setupTexture(model.data.specMapImg);
 
-    me.models.push(model);
+    //me.models.push(model);
 };

@@ -4,8 +4,11 @@ var scene;
 
 var init = function () {
     var canvas = document.getElementById('webgl-surface');
-    scene = new Scene();
+    scene = new Scene(canvas);
     var r = new Renderer(canvas);
+
+
+
 
     var camera = new Camera(
         glMatrix.toRadian(45),
@@ -36,17 +39,23 @@ var init = function () {
         glMatrix.toRadian(6)
     );
 
+
     var test = function () {
         scene.Add(spotLight);
     }
-    var myVar = setTimeout(test, 2000);
+    // Delay spotlight by 2 sec
+    var myVar = setTimeout(test, 1000);
 
     var cube = new Model(
         './models/cube.json',
         './models/cube.png',
         './models/cube_specular.png',
         function () {
-            scene.Add(cube);
+            var test2 = function() {
+                scene.Add(cube);
+            }
+            var myVar2 = setTimeout(test2, 500);
+
         }
     );
     cube.Position([3,-2,-7]);
@@ -65,22 +74,14 @@ var init = function () {
 
 // START JS TESTING
 
-
-function doSecond(model) {
-    console.log("doSecond");
-    console.log(model);
-}
-async function doSomething() {
-    var model = await new ModelNEW(
-    './models/tree.json',
-    './models/tree.png',
-    './models/tree_specular.png',
+    var testCube = new Model(
+        './models/cube.json',
+        './models/cube.png',
+        './models/cube_specular.png',
+        function () {
+            r.load(testCube);
+        }
     );
-    await doSecond(model);
-}
-
-doSomething();
-
 
 // END TESTING
 

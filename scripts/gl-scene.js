@@ -37,6 +37,8 @@ THE SOFTWARE. */
          /  |
 (out) +z    |
            -y
+
+ALL ANGLES ARE IN DEGREES
 */
 
 // TODO: change me.material to a single shine var instead of object
@@ -59,7 +61,18 @@ THE SOFTWARE. */
  * @name Scene
  * @param gl webgl context
  */
-var Scene = function () {
+var Scene = function (canvas) {
+	var gl = canvas.getContext('webgl');
+    if (!gl) {
+    	console.log('Failed to get WebGL context - trying experimental context');
+    	gl = canvas.getContext('experimental-webgl');
+    }
+	if (!gl) {
+    	console.error('Your browser does not support WebGL - please use a different browser\nGoogleChrome works great!');
+    	return;
+    }
+    this.gl = gl;
+
 	this.models = [];
 	this.pointLights = [];
 	this.dirLights = [];
