@@ -291,7 +291,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        out[2] = a[1];
 	        out[3] = a[3];
 	    }
-	    
+
 	    return out;
 	};
 
@@ -312,7 +312,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return null;
 	    }
 	    det = 1.0 / det;
-	    
+
 	    out[0] =  a3 * det;
 	    out[1] = -a1 * det;
 	    out[2] = -a2 * det;
@@ -472,19 +472,19 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	/**
 	 * Returns L, D and U matrices (Lower triangular, Diagonal and Upper triangular) by factorizing the input matrix
-	 * @param {mat2} L the lower triangular matrix 
-	 * @param {mat2} D the diagonal matrix 
-	 * @param {mat2} U the upper triangular matrix 
+	 * @param {mat2} L the lower triangular matrix
+	 * @param {mat2} D the diagonal matrix
+	 * @param {mat2} U the upper triangular matrix
 	 * @param {mat2} a the input matrix to factorize
 	 */
 
-	mat2.LDU = function (L, D, U, a) { 
-	    L[2] = a[2]/a[0]; 
-	    U[0] = a[0]; 
-	    U[1] = a[1]; 
-	    U[3] = a[3] - L[2] * U[1]; 
-	    return [L, D, U];       
-	}; 
+	mat2.LDU = function (L, D, U, a) {
+	    L[2] = a[2]/a[0];
+	    U[0] = a[0];
+	    U[1] = a[1];
+	    U[3] = a[3] - L[2] * U[1];
+	    return [L, D, U];
+	};
 
 
 	module.exports = mat2;
@@ -519,8 +519,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	/**
 	 * @class 2x3 Matrix
 	 * @name mat2d
-	 * 
-	 * @description 
+	 *
+	 * @description
 	 * A mat2d contains six elements defined as:
 	 * <pre>
 	 * [a, c, tx,
@@ -796,7 +796,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @returns {String} string representation of the matrix
 	 */
 	mat2d.str = function (a) {
-	    return 'mat2d(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + 
+	    return 'mat2d(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' +
 	                    a[3] + ', ' + a[4] + ', ' + a[5] + ')';
 	};
 
@@ -806,9 +806,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param {mat2d} a the matrix to calculate Frobenius norm of
 	 * @returns {Number} Frobenius norm
 	 */
-	mat2d.frob = function (a) { 
+	mat2d.frob = function (a) {
 	    return(Math.sqrt(Math.pow(a[0], 2) + Math.pow(a[1], 2) + Math.pow(a[2], 2) + Math.pow(a[3], 2) + Math.pow(a[4], 2) + Math.pow(a[5], 2) + 1))
-	}; 
+	};
 
 	module.exports = mat2d;
 
@@ -971,7 +971,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        out[7] = a[5];
 	        out[8] = a[8];
 	    }
-	    
+
 	    return out;
 	};
 
@@ -994,8 +994,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	        // Calculate the determinant
 	        det = a00 * b01 + a01 * b11 + a02 * b21;
 
-	    if (!det) { 
-	        return null; 
+	    if (!det) {
+	        return null;
 	    }
 	    det = 1.0 / det;
 
@@ -1338,8 +1338,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	        // Calculate the determinant
 	        det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
-	    if (!det) { 
-	        return null; 
+	    if (!det) {
+	        return null;
 	    }
 	    det = 1.0 / det;
 
@@ -1365,8 +1365,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @returns {String} string representation of the matrix
 	 */
 	mat3.str = function (a) {
-	    return 'mat3(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + 
-	                    a[3] + ', ' + a[4] + ', ' + a[5] + ', ' + 
+	    return 'mat3(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' +
+	                    a[3] + ', ' + a[4] + ', ' + a[5] + ', ' +
 	                    a[6] + ', ' + a[7] + ', ' + a[8] + ')';
 	};
 
@@ -3457,7 +3457,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @returns {quat} out
 	 */
 	quat.rotateX = function (out, a, rad) {
-	    rad *= 0.5; 
+	    rad *= 0.5;
 
 	    var ax = a[0], ay = a[1], az = a[2], aw = a[3],
 	        bx = Math.sin(rad), bw = Math.cos(rad);
@@ -3478,7 +3478,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @returns {quat} out
 	 */
 	quat.rotateY = function (out, a, rad) {
-	    rad *= 0.5; 
+	    rad *= 0.5;
 
 	    var ax = a[0], ay = a[1], az = a[2], aw = a[3],
 	        by = Math.sin(rad), bw = Math.cos(rad);
@@ -3499,7 +3499,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @returns {quat} out
 	 */
 	quat.rotateZ = function (out, a, rad) {
-	    rad *= 0.5; 
+	    rad *= 0.5;
 
 	    var ax = a[0], ay = a[1], az = a[2], aw = a[3],
 	        bz = Math.sin(rad), bw = Math.cos(rad);
@@ -3587,8 +3587,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	        sinom  = Math.sin(omega);
 	        scale0 = Math.sin((1.0 - t) * omega) / sinom;
 	        scale1 = Math.sin(t * omega) / sinom;
-	    } else {        
-	        // "from" and "to" quaternions are very close 
+	    } else {
+	        // "from" and "to" quaternions are very close
 	        //  ... so we can do a linear interpolation
 	        scale0 = 1.0 - t;
 	        scale1 = t;
@@ -3598,7 +3598,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    out[1] = scale0 * ay + scale1 * by;
 	    out[2] = scale0 * az + scale1 * bz;
 	    out[3] = scale0 * aw + scale1 * bw;
-	    
+
 	    return out;
 	};
 
@@ -3616,12 +3616,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	quat.sqlerp = (function () {
 	  var temp1 = quat.create();
 	  var temp2 = quat.create();
-	  
+
 	  return function (out, a, b, c, d, t) {
 	    quat.slerp(temp1, a, d, t);
 	    quat.slerp(temp2, b, c, t);
 	    quat.slerp(out, temp1, temp2, 2 * t * (1 - t));
-	    
+
 	    return out;
 	  };
 	}());
@@ -3637,7 +3637,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
 	        dot = a0*a0 + a1*a1 + a2*a2 + a3*a3,
 	        invDot = dot ? 1.0/dot : 0;
-	    
+
 	    // TODO: Would be faster to return [0,0,0,0] immediately if dot == 0
 
 	    out[0] = -a0*invDot;
@@ -3737,7 +3737,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	          i = 2;
 	        var j = (i+1)%3;
 	        var k = (i+2)%3;
-	        
+
 	        fRoot = Math.sqrt(m[i*3+i]-m[j*3+j]-m[k*3+k] + 1.0);
 	        out[i] = 0.5 * fRoot;
 	        fRoot = 0.5 / fRoot;
@@ -3745,7 +3745,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        out[j] = (m[j*3+i] + m[i*3+j]) * fRoot;
 	        out[k] = (m[k*3+i] + m[i*3+k]) * fRoot;
 	    }
-	    
+
 	    return out;
 	};
 
@@ -4199,11 +4199,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	      factor2 = factorTimes2 * (t - 2) + t,
 	      factor3 = factorTimes2 * (t - 1),
 	      factor4 = factorTimes2 * (3 - 2 * t);
-	  
+
 	  out[0] = a[0] * factor1 + b[0] * factor2 + c[0] * factor3 + d[0] * factor4;
 	  out[1] = a[1] * factor1 + b[1] * factor2 + c[1] * factor3 + d[1] * factor4;
 	  out[2] = a[2] * factor1 + b[2] * factor2 + c[2] * factor3 + d[2] * factor4;
-	  
+
 	  return out;
 	};
 
@@ -4226,11 +4226,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	      factor2 = 3 * t * inverseFactorTimesTwo,
 	      factor3 = 3 * factorTimes2 * inverseFactor,
 	      factor4 = factorTimes2 * t;
-	  
+
 	  out[0] = a[0] * factor1 + b[0] * factor2 + c[0] * factor3 + d[0] * factor4;
 	  out[1] = a[1] * factor1 + b[1] * factor2 + c[1] * factor3 + d[1] * factor4;
 	  out[2] = a[2] * factor1 + b[2] * factor2 + c[2] * factor3 + d[2] * factor4;
-	  
+
 	  return out;
 	};
 
@@ -4358,17 +4358,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	  	p[0] = a[0] - b[0];
 	  	p[1] = a[1] - b[1];
 	  	p[2] = a[2] - b[2];
-	  
+
 	  	//perform rotation
 	  	r[0] = p[2]*Math.sin(c) + p[0]*Math.cos(c);
 	  	r[1] = p[1];
 	  	r[2] = p[2]*Math.cos(c) - p[0]*Math.sin(c);
-	  
+
 	  	//translate to correct position
 	  	out[0] = r[0] + b[0];
 	  	out[1] = r[1] + b[1];
 	  	out[2] = r[2] + b[2];
-	  
+
 	  	return out;
 	};
 
@@ -4386,17 +4386,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	  	p[0] = a[0] - b[0];
 	  	p[1] = a[1] - b[1];
 	  	p[2] = a[2] - b[2];
-	  
+
 	  	//perform rotation
 	  	r[0] = p[0]*Math.cos(c) - p[1]*Math.sin(c);
 	  	r[1] = p[0]*Math.sin(c) + p[1]*Math.cos(c);
 	  	r[2] = p[2];
-	  
+
 	  	//translate to correct position
 	  	out[0] = r[0] + b[0];
 	  	out[1] = r[1] + b[1];
 	  	out[2] = r[2] + b[2];
-	  
+
 	  	return out;
 	};
 
@@ -4424,7 +4424,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        if(!offset) {
 	            offset = 0;
 	        }
-	        
+
 	        if(count) {
 	            l = Math.min((count * stride) + offset, a.length);
 	        } else {
@@ -4436,7 +4436,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            fn(vec, vec, arg);
 	            a[i] = vec[0]; a[i+1] = vec[1]; a[i+2] = vec[2];
 	        }
-	        
+
 	        return a;
 	    };
 	})();
@@ -4448,20 +4448,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @returns {Number} The angle in radians
 	 */
 	vec3.angle = function(a, b) {
-	   
+
 	    var tempA = vec3.fromValues(a[0], a[1], a[2]);
 	    var tempB = vec3.fromValues(b[0], b[1], b[2]);
-	 
+
 	    vec3.normalize(tempA, tempA);
 	    vec3.normalize(tempB, tempB);
-	 
+
 	    var cosine = vec3.dot(tempA, tempB);
 
 	    if(cosine > 1.0){
 	        return 0;
 	    } else {
 	        return Math.acos(cosine);
-	    }     
+	    }
 	};
 
 	/**
@@ -4990,7 +4990,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        if(!offset) {
 	            offset = 0;
 	        }
-	        
+
 	        if(count) {
 	            l = Math.min((count * stride) + offset, a.length);
 	        } else {
@@ -5002,7 +5002,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            fn(vec, vec, arg);
 	            a[i] = vec[0]; a[i+1] = vec[1]; a[i+2] = vec[2]; a[i+3] = vec[3];
 	        }
-	        
+
 	        return a;
 	    };
 	})();
@@ -5488,7 +5488,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @returns {vec2} out
 	 */
 	vec2.transformMat4 = function(out, a, m) {
-	    var x = a[0], 
+	    var x = a[0],
 	        y = a[1];
 	    out[0] = m[0] * x + m[4] * y + m[12];
 	    out[1] = m[1] * x + m[5] * y + m[13];
@@ -5519,7 +5519,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        if(!offset) {
 	            offset = 0;
 	        }
-	        
+
 	        if(count) {
 	            l = Math.min((count * stride) + offset, a.length);
 	        } else {
@@ -5531,7 +5531,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            fn(vec, vec, arg);
 	            a[i] = vec[0]; a[i+1] = vec[1];
 	        }
-	        
+
 	        return a;
 	    };
 	})();

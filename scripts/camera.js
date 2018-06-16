@@ -8,13 +8,26 @@
  * @param {vec3} lookAt Where camera is pointed [x, y, z]
  * @param {vec3} up	vector pointing in up direction
  */
-var Camera = function (position, lookAt, up) {
-	this.forward = vec3.create();
-	this.up = vec3.create();
-	this.right = vec3.create();
 
+
+var Camera = function (fov, aspect, near, far) {
+	this.projMatrix = mat4.create();
+	mat4.perspective(
+		this.projMatrix,
+		fov,
+		aspect,
+		near,
+		far
+	);
+
+	// Default position
+	this.position = [0,0,0];
+	this.forward  = [0,0,-1];
+	this.up = [0,1,0];
+	this.right = [1,0,0];
+}
+Camera.prototype.setPosition = function (position, lookAt, up) {
 	this.position = position;
-
 	vec3.subtract(this.forward, lookAt, this.position);
 	vec3.cross(this.right, this.forward, up);
 	vec3.cross(this.up, this.right, this.forward);
@@ -22,7 +35,7 @@ var Camera = function (position, lookAt, up) {
 	vec3.normalize(this.forward, this.forward);
 	vec3.normalize(this.right, this.right);
 	vec3.normalize(this.up, this.up);
-}
+};
 
 /**
  * Returns the view matrix created by the camera

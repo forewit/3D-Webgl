@@ -37,6 +37,8 @@ THE SOFTWARE. */
          /  |
 (out) +z    |
            -y
+
+ALL ANGLES ARE IN DEGREES
 */
 
 // TODO: change me.material to a single shine var instead of object
@@ -59,8 +61,18 @@ THE SOFTWARE. */
  * @name Scene
  * @param gl webgl context
  */
-var Scene = function (gl) {
-	this.gl = gl;
+var Scene = function (canvas) {
+	var gl = canvas.getContext('webgl');
+    if (!gl) {
+    	console.log('Failed to get WebGL context - trying experimental context');
+    	gl = canvas.getContext('experimental-webgl');
+    }
+	if (!gl) {
+    	console.error('Your browser does not support WebGL - please use a different browser\nGoogleChrome works great!');
+    	return;
+    }
+    this.gl = gl;
+
 	this.models = [];
 	this.pointLights = [];
 	this.dirLights = [];
@@ -68,21 +80,41 @@ var Scene = function (gl) {
 	this.material = {
 		shine: 100,
 	};
-
-	this.projMatrix = mat4.create();
-	mat4.perspective(
-		this.projMatrix,
-		glMatrix.toRadian(45),				// FIELD OF VIEW
-		gl.canvas.clientWidth / gl.canvas.clientHeight,
-		0.1,								// MIN VIEW DISTANCE
-		100.0								// MAX VIEW DISTANCE
-	);
 }
 
-Scene.prototype.AddLight = function (pointLight) {
-	this.pointLights.push(pointLight);
-};
+// TODO: implement Remove
+// 1. remove from Scene
+// 2. figure out how renderer can handle a remove
+Scene.prototype.Remove = function (object) {
+	switch(object.constructor.name) {
+	    case "Model":
+	        break;
+	    case "PointLight":
+	        break;
+		case "SpotLight":
+			break;
+		case "DirLight":
+			break;
+	    default:
+	        //code block
+	}
+}
 
-Scene.prototype.add = function (model) {
-	this.models.push(model);
+Scene.prototype.Add = function (object) {
+	switch(object.constructor.name) {
+	    case "Model":
+	        this.models.push(object);
+	        break;
+	    case "PointLight":
+	        this.pointLights.push(object);
+	        break;
+		case "SpotLight":
+			this.spotLights.push(object);
+			break;
+		case "DirLight":
+			this.dirLights.push(object);
+			break;
+	    default:
+	        //code block
+	}
 };
