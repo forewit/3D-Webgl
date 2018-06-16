@@ -35,7 +35,12 @@ var init = function () {
         glMatrix.toRadian(5),
         glMatrix.toRadian(6)
     );
-    scene.Add(spotLight);
+
+    var test = function () {
+        scene.Add(spotLight);
+    }
+    var myVar = setTimeout(test, 2000);
+
     var cube = new Model(
         './models/cube.json',
         './models/cube.png',
@@ -54,6 +59,31 @@ var init = function () {
         }
     );
     tree.Position([0,-3,-10]);
+
+
+
+
+// START JS TESTING
+
+
+function doSecond(model) {
+    console.log("doSecond");
+    console.log(model);
+}
+async function doSomething() {
+    var model = await new ModelNEW(
+    './models/tree.json',
+    './models/tree.png',
+    './models/tree_specular.png',
+    );
+    await doSecond(model);
+}
+
+doSomething();
+
+
+// END TESTING
+
 
 
     var t0 = performance.now();

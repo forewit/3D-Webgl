@@ -285,7 +285,6 @@ Renderer.prototype.render = function (scene, camera) {
 
     // Set per light uniforms
     if (me.uniforms.pointLights.length != scene.pointLights.length) {
-        console.log('point lights');
         for (i=0, len=scene.pointLights.length; i<len; i++) {
             var lightUniforms = [
                 gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].position'),
@@ -296,11 +295,10 @@ Renderer.prototype.render = function (scene, camera) {
                 gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].linear'),
                 gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].quadratic'),
             ];
-            me.uniforms.pointLights.push(lightUniforms);
+            me.uniforms.pointLights[i] = lightUniforms;
         }
     }
     if (me.uniforms.spotLights.length != scene.spotLights.length) {
-        console.log('spot lights');
         for (i=0, len=scene.spotLights.length; i<len; i++) {
             var lightUniforms = [
                 gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].position'),
@@ -314,11 +312,10 @@ Renderer.prototype.render = function (scene, camera) {
                 gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].innerCutOff'),
                 gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].outerCutOff'),
             ];
-            me.uniforms.spotLights.push(lightUniforms);
+            me.uniforms.spotLights[i] = lightUniforms;
         }
     }
     if (me.uniforms.dirLights.length != scene.dirLights.length) {
-        console.log('directional lights');
         for (i=0, len=scene.dirLights.length; i<len; i++) {
             var lightUniforms = [
                 gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].direction'),
@@ -326,7 +323,7 @@ Renderer.prototype.render = function (scene, camera) {
                 gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].diffuse'),
                 gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].specular'),
             ];
-            me.uniforms.dirLights.push(lightUniforms);
+            me.uniforms.dirLights[i] = lightUniforms;
         }
     }
 
@@ -343,6 +340,7 @@ Renderer.prototype.render = function (scene, camera) {
             model.tbo = gl.createBuffer(); // Texture coordinate buffer object
             model.nPoints = scene.models[i].indices.length;
             model.world = scene.models[i].world;
+            model.id = i;
 
             gl.bindBuffer(gl.ARRAY_BUFFER, model.vbo);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scene.models[i].vertices), gl.STATIC_DRAW);
@@ -500,4 +498,80 @@ Renderer.prototype.render = function (scene, camera) {
 		gl.drawElements(gl.TRIANGLES, me.models[i].nPoints, gl.UNSIGNED_SHORT, 0);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     }
+};
+
+
+
+Renderer.prototype.unload = function (modelData) {
+    var me = this;
+    var gl = me.gl;
+
+    for (i=0, len=me.models.length; i<len; i++) {
+        if (me.models[i].data == modelData) {
+            // delete model
+            console.log('Model Removed!!');
+        }
+    }
+
+};
+
+Renderer.prototype.load = async function (modelData) {
+    var me = this;
+    var gl = me.gl;
+
+
+    // Add new models
+    var model = {
+        data: modelData,
+        buffers: [],
+        textures: [],
+        uniforms: []
+    };
+
+    // Point data
+    model.buffers[0] = gl.createBuffer(); // Vertex buffer object
+    model.buffers[1] = gl.createBuffer(); // Index buffer object
+    model.buffers[2] = gl.createBuffer(); // Normal Buffer object
+    model.buffers[3] = gl.createBuffer(); // Texture coordinate buffer object
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.buffers[0]);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(model.data.vertices), gl.STATIC_DRAW);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.buffers[1]);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(model.data.indices), gl.STATIC_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.buffers[2]);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(model.data.normals), gl.STATIC_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.buffers[3]);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(model.data.texCoords), gl.STATIC_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+    // Texture data
+    var texture = gl.createTexture();
+    var specMap = gl.createTexture();
+    model.textures[0] = texture;
+    model.textures[1] = specMap;
+
+    function setupTexture(img) {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texImage2D(
+            gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            img
+        );
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    setupTexture(model.data.texImg);
+    setupTexture(model.data.specMapImg);
+
+    me.models.push(model);
 };

@@ -69,6 +69,24 @@ var Scene = function () {
 	};
 }
 
+// TODO: implement Remove
+// 1. remove from Scene
+// 2. figure out how renderer can handle a remove
+Scene.prototype.Remove = function (object) {
+	switch(object.constructor.name) {
+	    case "Model":
+	        break;
+	    case "PointLight":
+	        break;
+		case "SpotLight":
+			break;
+		case "DirLight":
+			break;
+	    default:
+	        //code block
+	}
+}
+
 Scene.prototype.Add = function (object) {
 	switch(object.constructor.name) {
 	    case "Model":
