@@ -526,12 +526,15 @@ Scene.prototype.Render = function (camera) {
 	gl.clearColor(0, 0, 0, 0.3);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
-	// Set uniforms
+	// Scene uniforms
 	gl.useProgram(me.program);
 
 	gl.uniformMatrix4fv(me.uniforms.mView, gl.FALSE, camera.getViewMatrix());
 	gl.uniformMatrix4fv(me.uniforms.mProj, gl.FALSE, camera.projMatrix);
 	gl.uniform3fv(me.uniforms.viewPos, camera.position);
+	gl.uniform1f(me.uniforms.materialShine, 100); // Material shine
+	gl.uniform1i(me.uniforms.materialDiffuse, 0); // Texture unit 0
+	gl.uniform1i(me.uniforms.materialSpecular, 1); // Texture unit 1
 
 	// Light uniforms
 	for (i=0, len=me.myPointLights.length; i<len; i++) {
