@@ -238,15 +238,8 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 `;
 
 // TODO: change me.material to a single shine var instead of object
-// TODO: move setting uniforms out of render loop
-// TODO: add load texture function
 // TODO: overload the add models function (depending of number of textuers)
-// TODO: add spot lights, point lights, and directional lights
-// TODO: make materials plural instead of singular :)
-// USEFUL: ` + `
-/* TODO: documentation
-		* MUST unload and load scene before adding lights
-*/
+// TODO: Move Material information to the model instead of the scene
 
 /**
  * A scene contains models, a camera, and phong lighting.
@@ -259,6 +252,8 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
  */
 var Scene = function (canvas) {
 	var me = this;
+
+	// Canvas
     var gl = canvas.getContext('webgl');
     if (!gl) {
     	console.log('Failed to get WebGL context - trying experimental context');
@@ -269,7 +264,7 @@ var Scene = function (canvas) {
     	return;
     }
 
-	// Setup vertex shader
+	// Vertex shader
     var vs = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vs, vertexShaderText);
     gl.compileShader(vs);
@@ -278,7 +273,7 @@ var Scene = function (canvas) {
         return;
     }
 
-    // Setup fragment shader
+    // Fragment shader
     var fs = gl.createShader(gl.FRAGMENT_SHADER);
     gl.shaderSource(fs, fragmentShaderText);
     gl.compileShader(fs);
@@ -287,7 +282,7 @@ var Scene = function (canvas) {
         return;
     }
 
-    // Setup gl program
+    // GL program
     var program = gl.createProgram();
     gl.attachShader(program, vs);
     gl.attachShader(program, fs);
@@ -302,9 +297,7 @@ var Scene = function (canvas) {
         return;
     }
 
-	//
-	// Setup scene variables
-	//
+	// Scene vars
 	me.gl = gl;
     me.program = program;
 	me.models = [];
@@ -312,7 +305,7 @@ var Scene = function (canvas) {
 	me.dirLights = [];
 	me.spotLights = [];
 
-    // Uniform locations
+    // Scene uniform locations
     me.uniforms = {
 		mProj: gl.getUniformLocation(me.program, 'u_proj'),
 		mView: gl.getUniformLocation(me.program, 'u_view'),
@@ -323,38 +316,15 @@ var Scene = function (canvas) {
 		materialSpecular: gl.getUniformLocation(me.program, 'u_material.specular'),
 	};
 
-    // Attribute locations
+    // Scene attribute locations
     me.attribs = {
 		vPos: gl.getAttribLocation(me.program, 'a_vertPosition'),
 		vNorm: gl.getAttribLocation(me.program, 'a_vertNormal'),
 		vTexCoord: gl.getAttribLocation(me.program, 'a_vertTexCoord'),
 	};
-
-
-	// TODO: REMOVE
-	me.material = {
-		shine: 100,
-	};
 }
 
-// TODO: implement Remove
-// 1. remove from Scene
-// 2. figure out how renderer can handle a remove
-Scene.prototype.Remove = function (object) {
-	switch(object.constructor.name) {
-	    case "Model":
-	        break;
-	    case "PointLight":
-	        break;
-		case "SpotLight":
-			break;
-		case "DirLight":
-			break;
-	    default:
-	        //code block
-	}
-}
-Scene.prototype.loadModel = function (object) {
+Scene.prototype.AddModel = function (object) {
 	var me = this;
 	var gl = me.gl;
 
@@ -417,7 +387,7 @@ Scene.prototype.loadModel = function (object) {
 	me.models.push(model);
 };
 
-Scene.prototype.loadPointLight = function (object) {
+Scene.prototype.AddPointLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
@@ -438,7 +408,7 @@ Scene.prototype.loadPointLight = function (object) {
 	me.pointLights.push(light);
 };
 
-Scene.prototype.loadSpotLight = function (object) {
+Scene.prototype.AddSpotLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
@@ -462,7 +432,7 @@ Scene.prototype.loadSpotLight = function (object) {
 	me.spotLights.push(light);
 };
 
-Scene.prototype.loadDirLight = function (object) {
+Scene.prototype.AddDirLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
@@ -482,34 +452,28 @@ Scene.prototype.loadDirLight = function (object) {
 };
 
 Scene.prototype.Add = function (object) {
-	var me = this;
-	var gl = me.gl;
-
 	switch(object.constructor.name) {
 	    case "Model":
-			me.loadModel(object);
+			this.AddModel(object);
 	        break;
-
 	    case "PointLight":
-			me.loadPointLight(object);
+			this.AddPointLight(object);
 	        break;
-
 		case "SpotLight":
-			me.loadSpotLight(object);
+			this.AddSpotLight(object);
 			break;
-
 		case "DirLight":
-			me.loadDirLight(object);
+			this.AddDirLight(object);
 			break;
-
 	    default:
-	        //code block
 	}
 };
 
 Scene.prototype.Render = function (camera) {
 	var me = this;
 	var gl = me.gl;
+
+	gl.useProgram(me.program);
 
 	// Canvas setup
 	gl.enable(gl.DEPTH_TEST);
@@ -522,8 +486,6 @@ Scene.prototype.Render = function (camera) {
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
 	// Scene uniforms
-	gl.useProgram(me.program);
-
 	gl.uniformMatrix4fv(me.uniforms.mView, gl.FALSE, camera.getViewMatrix());
 	gl.uniformMatrix4fv(me.uniforms.mProj, gl.FALSE, camera.projMatrix);
 	gl.uniform3fv(me.uniforms.viewPos, camera.position);
