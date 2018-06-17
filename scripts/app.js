@@ -5,10 +5,6 @@ var scene;
 var init = function () {
     var canvas = document.getElementById('webgl-surface');
     scene = new Scene(canvas);
-    var r = new Renderer(canvas);
-
-
-
 
     var camera = new Camera(
         glMatrix.toRadian(45),
@@ -24,11 +20,11 @@ var init = function () {
     var sun = new DirLight(
         [-0.2, -1, -0.2],
         [0.2, 0.2, 0.2],
-        [0.5, 0.5, 0.5],
-        [0.5, 0.5, 0.5]
+        [0.7, 0.7, 0.7],
+        [0.7, 0.7, 0.7]
     );
     scene.Add(sun);
-    
+
     var spotLight = new SpotLight(
         camera.position,
         camera.forward,
@@ -75,15 +71,6 @@ var init = function () {
 
 // START JS TESTING
 
-    var testCube = new Model(
-        './models/cube.json',
-        './models/cube.png',
-        './models/cube_specular.png',
-        function () {
-            r.load(testCube);
-        }
-    );
-
 // END TESTING
 
 
@@ -99,7 +86,6 @@ var init = function () {
             [0,1,0]
         )
 
-        //r.render(scene, camera);
         scene.Render(camera);
 
         t0 = performance.now();

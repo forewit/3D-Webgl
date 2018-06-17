@@ -312,11 +312,6 @@ var Scene = function (canvas) {
 	me.dirLights = [];
 	me.spotLights = [];
 
-	me.myModels = [];
-	me.myPointLights = [];
-	me.myDirLights = [];
-	me.mySpotLights = [];
-
     // Uniform locations
     me.uniforms = {
 		mProj: gl.getUniformLocation(me.program, 'u_proj'),
@@ -419,14 +414,14 @@ Scene.prototype.loadModel = function (object) {
 	setupTexture(model.data.specMapImg, specMap);
 	model.textures[1] = specMap;
 
-	me.myModels.push(model);
+	me.models.push(model);
 };
 
 Scene.prototype.loadPointLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
-	var i = me.myPointLights.length;
+	var i = me.pointLights.length;
 	console.log('Point light: ' + i);
 	var light = {
 		data: object,
@@ -440,14 +435,14 @@ Scene.prototype.loadPointLight = function (object) {
 			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].quadratic'),
 		],
 	};
-	me.myPointLights.push(light);
+	me.pointLights.push(light);
 };
 
 Scene.prototype.loadSpotLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
-	var i = me.mySpotLights.length;
+	var i = me.spotLights.length;
 	console.log('Spot light: ' + i);
 	var light = {
 		data: object,
@@ -464,14 +459,14 @@ Scene.prototype.loadSpotLight = function (object) {
 			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].outerCutOff'),
 		],
 	};
-	me.mySpotLights.push(light);
+	me.spotLights.push(light);
 };
 
 Scene.prototype.loadDirLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
-	var i = me.myDirLights.length;
+	var i = me.dirLights.length;
 	console.log('Dir light: ' + i);
 
 	var light = {
@@ -483,7 +478,7 @@ Scene.prototype.loadDirLight = function (object) {
 			gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].specular'),
 		],
 	};
-	me.myDirLights.push(light);
+	me.dirLights.push(light);
 };
 
 Scene.prototype.Add = function (object) {
@@ -537,54 +532,54 @@ Scene.prototype.Render = function (camera) {
 	gl.uniform1i(me.uniforms.materialSpecular, 1); // Texture unit 1
 
 	// Light uniforms
-	for (i=0, len=me.myPointLights.length; i<len; i++) {
-		gl.uniform3fv(me.myPointLights[i].uniforms[0], me.myPointLights[i].data.position);
-		gl.uniform3fv(me.myPointLights[i].uniforms[1], me.myPointLights[i].data.ambient);
-		gl.uniform3fv(me.myPointLights[i].uniforms[2], me.myPointLights[i].data.diffuse);
-		gl.uniform3fv(me.myPointLights[i].uniforms[3], me.myPointLights[i].data.specular);
-		gl.uniform1f(me.myPointLights[i].uniforms[4], me.myPointLights[i].data.attenuation[0]);
-		gl.uniform1f(me.myPointLights[i].uniforms[5], me.myPointLights[i].data.attenuation[1]);
-		gl.uniform1f(me.myPointLights[i].uniforms[6], me.myPointLights[i].data.attenuation[2]);
+	for (i=0, len=me.pointLights.length; i<len; i++) {
+		gl.uniform3fv(me.pointLights[i].uniforms[0], me.pointLights[i].data.position);
+		gl.uniform3fv(me.pointLights[i].uniforms[1], me.pointLights[i].data.ambient);
+		gl.uniform3fv(me.pointLights[i].uniforms[2], me.pointLights[i].data.diffuse);
+		gl.uniform3fv(me.pointLights[i].uniforms[3], me.pointLights[i].data.specular);
+		gl.uniform1f(me.pointLights[i].uniforms[4], me.pointLights[i].data.attenuation[0]);
+		gl.uniform1f(me.pointLights[i].uniforms[5], me.pointLights[i].data.attenuation[1]);
+		gl.uniform1f(me.pointLights[i].uniforms[6], me.pointLights[i].data.attenuation[2]);
 	}
-	for (i=0, len=me.mySpotLights.length; i<len; i++) {
-	    gl.uniform3fv(me.mySpotLights[i].uniforms[0], me.mySpotLights[i].data.position);
-	    gl.uniform3fv(me.mySpotLights[i].uniforms[1], me.mySpotLights[i].data.direction);
-	    gl.uniform3fv(me.mySpotLights[i].uniforms[2], me.mySpotLights[i].data.ambient);
-	    gl.uniform3fv(me.mySpotLights[i].uniforms[3], me.mySpotLights[i].data.diffuse);
-	    gl.uniform3fv(me.mySpotLights[i].uniforms[4], me.mySpotLights[i].data.specular);
-	    gl.uniform1f(me.mySpotLights[i].uniforms[5], me.mySpotLights[i].data.attenuation[0]);
-	    gl.uniform1f(me.mySpotLights[i].uniforms[6], me.mySpotLights[i].data.attenuation[1]);
-	    gl.uniform1f(me.mySpotLights[i].uniforms[7], me.mySpotLights[i].data.attenuation[2]);
-	    gl.uniform1f(me.mySpotLights[i].uniforms[8], me.mySpotLights[i].data.innerCutOff);
-	    gl.uniform1f(me.mySpotLights[i].uniforms[9], me.mySpotLights[i].data.outerCutOff);
+	for (i=0, len=me.spotLights.length; i<len; i++) {
+	    gl.uniform3fv(me.spotLights[i].uniforms[0], me.spotLights[i].data.position);
+	    gl.uniform3fv(me.spotLights[i].uniforms[1], me.spotLights[i].data.direction);
+	    gl.uniform3fv(me.spotLights[i].uniforms[2], me.spotLights[i].data.ambient);
+	    gl.uniform3fv(me.spotLights[i].uniforms[3], me.spotLights[i].data.diffuse);
+	    gl.uniform3fv(me.spotLights[i].uniforms[4], me.spotLights[i].data.specular);
+	    gl.uniform1f(me.spotLights[i].uniforms[5], me.spotLights[i].data.attenuation[0]);
+	    gl.uniform1f(me.spotLights[i].uniforms[6], me.spotLights[i].data.attenuation[1]);
+	    gl.uniform1f(me.spotLights[i].uniforms[7], me.spotLights[i].data.attenuation[2]);
+	    gl.uniform1f(me.spotLights[i].uniforms[8], me.spotLights[i].data.innerCutOff);
+	    gl.uniform1f(me.spotLights[i].uniforms[9], me.spotLights[i].data.outerCutOff);
 	}
-	for (i=0, len=me.myDirLights.length; i<len; i++) {
-		gl.uniform3fv(me.myDirLights[i].uniforms[0], me.myDirLights[i].data.direction);
-		gl.uniform3fv(me.myDirLights[i].uniforms[1], me.myDirLights[i].data.ambient);
-		gl.uniform3fv(me.myDirLights[i].uniforms[2], me.myDirLights[i].data.diffuse);
-		gl.uniform3fv(me.myDirLights[i].uniforms[3], me.myDirLights[i].data.specular);
+	for (i=0, len=me.dirLights.length; i<len; i++) {
+		gl.uniform3fv(me.dirLights[i].uniforms[0], me.dirLights[i].data.direction);
+		gl.uniform3fv(me.dirLights[i].uniforms[1], me.dirLights[i].data.ambient);
+		gl.uniform3fv(me.dirLights[i].uniforms[2], me.dirLights[i].data.diffuse);
+		gl.uniform3fv(me.dirLights[i].uniforms[3], me.dirLights[i].data.specular);
 	}
 
 
-	for (i=0, len=me.myModels.length; i<len; i++) {
+	for (i=0, len=me.models.length; i<len; i++) {
         // Bind texture
 		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, me.myModels[i].textures[0]);
+		gl.bindTexture(gl.TEXTURE_2D, me.models[i].textures[0]);
 
 		// Bind specular mapping
 		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, me.myModels[i].textures[1]);
+		gl.bindTexture(gl.TEXTURE_2D, me.models[i].textures[1]);
 
         // Per object uniforms
         //TODO verify e
         gl.uniformMatrix4fv(
             me.uniforms.mWorld,
             gl.FALSE,
-            me.myModels[i].data.world,
+            me.models[i].data.world,
         );
 
         // Set attributes
-		gl.bindBuffer(gl.ARRAY_BUFFER, me.myModels[i].buffers.vbo);
+		gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].buffers.vbo);
 		gl.vertexAttribPointer(
 			me.attribs.vPos,
 			3, gl.FLOAT, gl.FALSE,
@@ -593,7 +588,7 @@ Scene.prototype.Render = function (camera) {
 		);
 		gl.enableVertexAttribArray(me.attribs.vPos);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, me.myModels[i].buffers.tbo);
+        gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].buffers.tbo);
 		gl.vertexAttribPointer(
 			me.attribs.vTexCoord,
 			2, gl.FLOAT, gl.FALSE,
@@ -602,7 +597,7 @@ Scene.prototype.Render = function (camera) {
 		);
 		gl.enableVertexAttribArray(me.attribs.vTexCoord)
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, me.myModels[i].buffers.nbo);
+		gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].buffers.nbo);
 		gl.vertexAttribPointer(
 			me.attribs.vNorm,
 			3, gl.FLOAT, gl.FALSE,
@@ -613,8 +608,8 @@ Scene.prototype.Render = function (camera) {
 
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, me.myModels[i].buffers.ibo);
-		gl.drawElements(gl.TRIANGLES, me.myModels[i].data.indices.length, gl.UNSIGNED_SHORT, 0);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, me.models[i].buffers.ibo);
+		gl.drawElements(gl.TRIANGLES, me.models[i].data.indices.length, gl.UNSIGNED_SHORT, 0);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     }
 };
