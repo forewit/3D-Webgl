@@ -28,7 +28,7 @@ var init = function () {
         [0.5, 0.5, 0.5]
     );
     scene.Add(sun);
-    var 
+    
     var spotLight = new SpotLight(
         camera.position,
         camera.forward,
