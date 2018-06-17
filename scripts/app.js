@@ -24,10 +24,11 @@ var init = function () {
     var sun = new DirLight(
         [-0.2, -1, -0.2],
         [0.2, 0.2, 0.2],
-        [0.7, 0.7, 0.7],
-        [0.7, 0.7, 0.7]
+        [0.5, 0.5, 0.5],
+        [0.5, 0.5, 0.5]
     );
     scene.Add(sun);
+    var 
     var spotLight = new SpotLight(
         camera.position,
         camera.forward,
@@ -98,7 +99,8 @@ var init = function () {
             [0,1,0]
         )
 
-        r.render(scene, camera);
+        //r.render(scene, camera);
+        scene.Render(camera);
 
         t0 = performance.now();
         requestAnimationFrame(loop);
