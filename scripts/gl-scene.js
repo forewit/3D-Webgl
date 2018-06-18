@@ -76,7 +76,7 @@ varying vec3 v_fragPosition;
 
 uniform vec3 u_viewPosition;
 
-#define NUM_POINT_LIGHTS 2
+#define NUM_POINT_LIGHTS <numPointLights>
 struct PointLight {
     vec3 position;
 
@@ -90,7 +90,7 @@ struct PointLight {
 };
 uniform PointLight u_pointLights[NUM_POINT_LIGHTS];
 
-#define NUM_DIR_LIGHTS 1
+#define NUM_DIR_LIGHTS <numDirLights>
 struct DirLight {
     vec3 direction;
 
@@ -100,7 +100,7 @@ struct DirLight {
 };
 uniform DirLight u_dirLights[NUM_DIR_LIGHTS];
 
-#define NUM_SPOT_LIGHTS 1
+#define NUM_SPOT_LIGHTS <numSpotLights>
 struct SpotLight {
     vec3 position;
     vec3 direction;
@@ -236,6 +236,9 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 }
 
 `;
+const MAX_POINT_LIGHTS = 4;
+const MAX_SPOT_LIGHTS = 4;
+const MAX_DIR_LIGHTS = 4;
 
 // TODO: change me.material to a single shine var instead of object
 // TODO: overload the add models function (depending of number of textuers)
@@ -250,7 +253,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
  * @name Scene
  * @param gl webgl context
  */
-var Scene = function (canvas) {
+var Scene = function (canvas, options) {
 	var me = this;
 
 	// Canvas
@@ -264,7 +267,7 @@ var Scene = function (canvas) {
     	return;
     }
 
-	// Vertex shader
+    // Vertex shader
     var vs = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vs, vertexShaderText);
     gl.compileShader(vs);
@@ -274,8 +277,12 @@ var Scene = function (canvas) {
     }
 
     // Fragment shader
+    var fsText = fragmentShaderText.replace('<numPointLights>', options.maxPointLights || MAX_POINT_LIGHTS);
+    fsText = fsText.replace('<numSpotLights>', options.maxSpotLights || MAX_SPOT_LIGHTS);
+    fsText = fsText.replace('<numDirLights>', options.maxDirLights || MAX_DIR_LIGHTS)
+
     var fs = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fs, fragmentShaderText);
+    gl.shaderSource(fs, fsText);
     gl.compileShader(fs);
     if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
         console.error('Error compiling fragment shader: ' + gl.getShaderInfoLog(fs));
@@ -296,8 +303,10 @@ var Scene = function (canvas) {
         console.error('Error validating program: ' + gl.getProgramInfoLog(program));
         return;
     }
+    gl.detachShader(program, vs);
+    gl.detachShader(program, fs);
 
-	// Scene vars
+
 	me.gl = gl;
     me.program = program;
 	me.models = [];
@@ -305,7 +314,7 @@ var Scene = function (canvas) {
 	me.dirLights = [];
 	me.spotLights = [];
 
-    // Scene uniform locations
+    // Global uniforms
     me.uniforms = {
 		mProj: gl.getUniformLocation(me.program, 'u_proj'),
 		mView: gl.getUniformLocation(me.program, 'u_view'),
@@ -316,7 +325,7 @@ var Scene = function (canvas) {
 		materialSpecular: gl.getUniformLocation(me.program, 'u_material.specular'),
 	};
 
-    // Scene attribute locations
+    // Attributes
     me.attribs = {
 		vPos: gl.getAttribLocation(me.program, 'a_vertPosition'),
 		vNorm: gl.getAttribLocation(me.program, 'a_vertNormal'),
@@ -327,6 +336,11 @@ var Scene = function (canvas) {
 Scene.prototype.AddModel = function (object) {
 	var me = this;
 	var gl = me.gl;
+
+    // Prevent adding duplicates
+    for (i=0, len=me.models.length; i<len; i++) {
+        if (object == me.models[i].data) { return; }
+    }
 
 	var model = {
 		data: object,
@@ -391,8 +405,12 @@ Scene.prototype.AddPointLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
+    // Prevent adding duplicates
+    for (i=0, len=me.pointLights.length; i<len; i++) {
+        if (object == me.pointLights[i].data) { return; }
+    }
+
 	var i = me.pointLights.length;
-	console.log('Point light: ' + i);
 	var light = {
 		data: object,
 		uniforms: [
@@ -412,8 +430,12 @@ Scene.prototype.AddSpotLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
+    // Prevent adding duplicates
+    for (i=0, len=me.spotLights.length; i<len; i++) {
+        if (object == me.spotLights[i].data) { return; }
+    }
+
 	var i = me.spotLights.length;
-	console.log('Spot light: ' + i);
 	var light = {
 		data: object,
 		uniforms: [
@@ -436,9 +458,36 @@ Scene.prototype.AddDirLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
-	var i = me.dirLights.length;
-	console.log('Dir light: ' + i);
+    // Prevent adding duplicates
+    for (i=0, len=me.dirLights.length; i<len; i++) {
+        if (object == me.dirLights[i].data) { return; }
+    }
 
+    // Prevent exceeding maximum
+    if (me.dirLights.length == me.maxDirLights) {
+        console.error('Cannot exceed directional light maximum.');
+        return;
+    }
+
+    if (me.dirLights.length == 1) {
+        // Fragment shader
+        var fsText = fragmentShaderText.replace('<numSpotLights>', 1);
+        fsText = fsText.replace('<numPointLights>', 1);
+        fsText = fsText.replace('<numDirLights>', 2)
+
+        var fs = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fs, fsText);
+        gl.compileShader(fs);
+        if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+            console.error('Error compiling fragment shader: ' + gl.getShaderInfoLog(fs));
+            return;
+        }
+
+
+    }
+
+
+	var i = me.dirLights.length;
 	var light = {
 		data: object,
 		uniforms: [
@@ -464,6 +513,48 @@ Scene.prototype.Add = function (object) {
 			break;
 		case "DirLight":
 			this.AddDirLight(object);
+			break;
+	    default:
+	}
+};
+Scene.prototype.RemoveModel = function (object) {
+    var me = this;
+    var gl = me.gl;
+
+    for (i=0, len=me.models.length; i<len; i++) {
+        if (object == me.models[i].data) {
+            // Delete buffers
+            gl.deleteBuffer(me.models[i].buffers.vbo);
+            gl.deleteBuffer(me.models[i].buffers.ibo);
+            gl.deleteBuffer(me.models[i].buffers.nbo);
+            gl.deleteBuffer(me.models[i].buffers.tbo);
+
+            // Delete textures
+            gl.deleteTexture(me.models[i].textures[0]);
+            gl.deleteTexture(me.models[i].textures[0]);
+
+            // Delete properties (TODO: MIGHT BE REDUNDANT)
+            delete me.models[i].data;
+            delete me.models[i].buffers;
+            delete me.models[i].textures;
+
+            // Remove object
+            me.models.splice(i,1);
+            break;
+        }
+    }
+};
+
+Scene.prototype.Remove = function (object) {
+	switch(object.constructor.name) {
+	    case "Model":
+            this.RemoveModel(object);
+            break;
+	    case "PointLight":
+	        break;
+		case "SpotLight":
+			break;
+		case "DirLight":
 			break;
 	    default:
 	}
