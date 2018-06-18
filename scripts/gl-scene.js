@@ -236,11 +236,12 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 }
 
 `;
+// Default light restrictions:
 const MAX_POINT_LIGHTS = 4;
 const MAX_SPOT_LIGHTS = 4;
 const MAX_DIR_LIGHTS = 4;
 
-// TODO: change me.material to a single shine var instead of object
+// TODO: Removing lights (setting their intensity to 0, deleting objects, etc.);
 // TODO: overload the add models function (depending of number of textuers)
 // TODO: Move Material information to the model instead of the scene
 
@@ -631,7 +632,6 @@ Scene.prototype.Render = function (camera) {
 		gl.bindTexture(gl.TEXTURE_2D, me.models[i].textures[1]);
 
         // Per object uniforms
-        //TODO verify e
         gl.uniformMatrix4fv(
             me.uniforms.mWorld,
             gl.FALSE,
