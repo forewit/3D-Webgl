@@ -276,10 +276,14 @@ var Scene = function (canvas, options) {
         return;
     }
 
+    me.maxPointLights = options.maxPointLights || MAX_POINT_LIGHTS;
+    me.maxSpotLights = options.maxSpotLights || MAX_SPOT_LIGHTS;
+    me.maxDirLights = options.maxDirLights || MAX_DIR_LIGHTS;
+
     // Fragment shader
-    var fsText = fragmentShaderText.replace('<numPointLights>', options.maxPointLights || MAX_POINT_LIGHTS);
-    fsText = fsText.replace('<numSpotLights>', options.maxSpotLights || MAX_SPOT_LIGHTS);
-    fsText = fsText.replace('<numDirLights>', options.maxDirLights || MAX_DIR_LIGHTS)
+    var fsText = fragmentShaderText.replace('<numPointLights>', me.maxPointLights);
+    fsText = fsText.replace('<numSpotLights>', me.maxSpotLights);
+    fsText = fsText.replace('<numDirLights>', me.maxDirLights)
 
     var fs = gl.createShader(gl.FRAGMENT_SHADER);
     gl.shaderSource(fs, fsText);
@@ -405,22 +409,31 @@ Scene.prototype.AddPointLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
+    var len = me.pointLights.length;
+
+    // Prevent exceeding maximum
+    if (len == me.maxPointLights) {
+        console.error('Cannot exceed point light maximum.');
+        return;
+    }
     // Prevent adding duplicates
-    for (i=0, len=me.pointLights.length; i<len; i++) {
-        if (object == me.pointLights[i].data) { return; }
+    for (i=0; i<len; i++) {
+        if (object == me.pointLights[i].data) {
+            console.error('Cannot add duplicate point light.')
+            return;
+        }
     }
 
-	var i = me.pointLights.length;
 	var light = {
 		data: object,
 		uniforms: [
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].position'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].ambient'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].diffuse'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].specular'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].constant'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].linear'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + i + '].quadratic'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].position'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].ambient'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].diffuse'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].specular'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].constant'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].linear'),
+			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].quadratic'),
 		],
 	};
 	me.pointLights.push(light);
@@ -430,25 +443,34 @@ Scene.prototype.AddSpotLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
+    var len = me.spotLights.length;
+
+    // Prevent exceeding maximum
+    if (len == me.maxSpotLights) {
+        console.error('Cannot exceed spot light maximum.');
+        return;
+    }
     // Prevent adding duplicates
-    for (i=0, len=me.spotLights.length; i<len; i++) {
-        if (object == me.spotLights[i].data) { return; }
+    for (i=0; i<len; i++) {
+        if (object == me.spotLights[i].data) {
+            console.error('Cannot add duplicate spot light.')
+            return;
+        }
     }
 
-	var i = me.spotLights.length;
 	var light = {
 		data: object,
 		uniforms: [
-			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].position'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].direction'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].ambient'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].diffuse'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].specular'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].constant'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].linear'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].quadratic'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].innerCutOff'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + i + '].outerCutOff'),
+			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].position'),
+			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].direction'),
+			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].ambient'),
+			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].diffuse'),
+			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].specular'),
+			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].constant'),
+			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].linear'),
+			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].quadratic'),
+			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].innerCutOff'),
+			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].outerCutOff'),
 		],
 	};
 	me.spotLights.push(light);
@@ -458,43 +480,28 @@ Scene.prototype.AddDirLight = function (object) {
 	var me = this;
 	var gl = me.gl;
 
-    // Prevent adding duplicates
-    for (i=0, len=me.dirLights.length; i<len; i++) {
-        if (object == me.dirLights[i].data) { return; }
-    }
+    var len = me.dirLights.length;
 
     // Prevent exceeding maximum
-    if (me.dirLights.length == me.maxDirLights) {
+    if (len == me.maxDirLights) {
         console.error('Cannot exceed directional light maximum.');
         return;
     }
-
-    if (me.dirLights.length == 1) {
-        // Fragment shader
-        var fsText = fragmentShaderText.replace('<numSpotLights>', 1);
-        fsText = fsText.replace('<numPointLights>', 1);
-        fsText = fsText.replace('<numDirLights>', 2)
-
-        var fs = gl.createShader(gl.FRAGMENT_SHADER);
-        gl.shaderSource(fs, fsText);
-        gl.compileShader(fs);
-        if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
-            console.error('Error compiling fragment shader: ' + gl.getShaderInfoLog(fs));
+    // Prevent adding duplicates
+    for (i=0; i<len; i++) {
+        if (object == me.dirLights[i].data) {
+            console.error('Cannot add duplicate directional light.')
             return;
         }
-
-
     }
 
-
-	var i = me.dirLights.length;
 	var light = {
 		data: object,
 		uniforms: [
-			gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].direction'),
-			gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].ambient'),
-			gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].diffuse'),
-			gl.getUniformLocation(me.program, 'u_dirLights[' + i + '].specular'),
+			gl.getUniformLocation(me.program, 'u_dirLights[' + len + '].direction'),
+			gl.getUniformLocation(me.program, 'u_dirLights[' + len + '].ambient'),
+			gl.getUniformLocation(me.program, 'u_dirLights[' + len + '].diffuse'),
+			gl.getUniformLocation(me.program, 'u_dirLights[' + len + '].specular'),
 		],
 	};
 	me.dirLights.push(light);
