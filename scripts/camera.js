@@ -26,7 +26,7 @@ var Camera = function (fov, aspect, near, far) {
 	this.up = [0,1,0];
 	this.right = [1,0,0];
 }
-Camera.prototype.setPosition = function (position, lookAt, up) {
+Camera.prototype.Orient = function (position, lookAt, up) {
 	this.position = position;
 	vec3.subtract(this.forward, lookAt, this.position);
 	vec3.cross(this.right, this.forward, up);
