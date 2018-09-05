@@ -144,12 +144,12 @@ void main()
         result += CalcDirLight(u_dirLights[i], norm, viewDir);
 
     // Point lights
-    for(int i = 0; i < NUM_POINT_LIGHTS; i++)
-        result += CalcPointLight(u_pointLights[i], norm, v_fragPosition, viewDir);
+   // for(int i = 0; i < NUM_POINT_LIGHTS; i++)
+    //   result += CalcPointLight(u_pointLights[i], norm, v_fragPosition, viewDir);
 
     // Spot lights
-    for(int i = 0; i < NUM_SPOT_LIGHTS; i++)
-        result += CalcSpotLight(u_spotLights[i], norm, v_fragPosition, viewDir);
+   // for(int i = 0; i < NUM_SPOT_LIGHTS; i++)
+     //   result += CalcSpotLight(u_spotLights[i], norm, v_fragPosition, viewDir);
 
     gl_FragColor = vec4(result, 1.0);
 }
@@ -236,7 +236,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 }
 
 `;
-// Default light restrictions:
+// Default light restrictions: MINIMUM of 1
 const MAX_POINT_LIGHTS = 4;
 const MAX_SPOT_LIGHTS = 4;
 const MAX_DIR_LIGHTS = 4;
@@ -276,10 +276,14 @@ var Scene = function (canvas, options) {
         console.error('Error compiling vertex shader: ' + gl.getShaderInfoLog(vs));
         return;
     }
+    
+    if (!options) options = {};
 
     me.maxPointLights = options.maxPointLights || MAX_POINT_LIGHTS;
     me.maxSpotLights = options.maxSpotLights || MAX_SPOT_LIGHTS;
     me.maxDirLights = options.maxDirLights || MAX_DIR_LIGHTS;
+
+    console.log(me.maxSpotLights,me.maxPointLights,me.maxDirLights);
 
     // Fragment shader
     var fsText = fragmentShaderText.replace('<numPointLights>', me.maxPointLights);
@@ -520,7 +524,7 @@ Scene.prototype.Add = function (object) {
 			this.AddSpotLight(object);
 			break;
 		case "DirLight":
-			this.AddDirLight(object);
+            this.AddDirLight(object); 
 			break;
 	    default:
 	}
@@ -613,20 +617,19 @@ Scene.prototype.Render = function (camera) {
 	    gl.uniform1f(me.spotLights[i].uniforms[7], me.spotLights[i].data.attenuation[2]);
 	    gl.uniform1f(me.spotLights[i].uniforms[8], me.spotLights[i].data.innerCutOff);
 	    gl.uniform1f(me.spotLights[i].uniforms[9], me.spotLights[i].data.outerCutOff);
-	}
+    }
 	for (i=0, len=me.dirLights.length; i<len; i++) {
 		gl.uniform3fv(me.dirLights[i].uniforms[0], me.dirLights[i].data.direction);
 		gl.uniform3fv(me.dirLights[i].uniforms[1], me.dirLights[i].data.ambient);
 		gl.uniform3fv(me.dirLights[i].uniforms[2], me.dirLights[i].data.diffuse);
 		gl.uniform3fv(me.dirLights[i].uniforms[3], me.dirLights[i].data.specular);
-	}
-
+    }
 
 	for (i=0, len=me.models.length; i<len; i++) {
         // Bind texture
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, me.models[i].textures[0]);
-
+        console.log(me.models[i].textures[0]);
 		// Bind specular mapping
 		gl.activeTexture(gl.TEXTURE1);
 		gl.bindTexture(gl.TEXTURE_2D, me.models[i].textures[1]);
@@ -670,6 +673,6 @@ Scene.prototype.Render = function (camera) {
 
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, me.models[i].buffers.ibo);
 		gl.drawElements(gl.TRIANGLES, me.models[i].data.indices.length, gl.UNSIGNED_SHORT, 0);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     }
 };
