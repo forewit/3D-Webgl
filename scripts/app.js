@@ -34,7 +34,7 @@ var init = function () {
             tree.Position([0,-3,-10]);
         }
     );
-    
+
     var t0 = performance.now();
     var loop = function () {
         var perSec = (performance.now() - t0) / 1000;

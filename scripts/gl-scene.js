@@ -283,7 +283,7 @@ var Scene = function (canvas, options) {
     me.maxPointLights = options.maxPointLights || MAX_POINT_LIGHTS;
     me.maxSpotLights = options.maxSpotLights || MAX_SPOT_LIGHTS;
     me.maxDirLights = options.maxDirLights || MAX_DIR_LIGHTS;
-    
+
     // Fragment shader
     var fsText = fragmentShaderText.replace('<numPointLights>', me.maxPointLights);
     fsText = fsText.replace('<numSpotLights>', me.maxSpotLights);
@@ -528,44 +528,97 @@ Scene.prototype.Add = function (object) {
 	    default:
 	}
 };
-Scene.prototype.RemoveModel = function (object) {
+
+Scene.prototype.Remove = function (object) {
     var me = this;
     var gl = me.gl;
 
-    for (i=0, len=me.models.length; i<len; i++) {
-        if (object == me.models[i].data) {
-            // Delete buffers
-            gl.deleteBuffer(me.models[i].buffers.vbo);
-            gl.deleteBuffer(me.models[i].buffers.ibo);
-            gl.deleteBuffer(me.models[i].buffers.nbo);
-            gl.deleteBuffer(me.models[i].buffers.tbo);
-
-            // Delete textures
-            gl.deleteTexture(me.models[i].textures[0]);
-            gl.deleteTexture(me.models[i].textures[0]);
-
-            // Delete properties (TODO: MIGHT BE REDUNDANT)
-            delete me.models[i].data;
-            delete me.models[i].buffers;
-            delete me.models[i].textures;
-
-            // Remove object
-            me.models.splice(i,1);
-            break;
-        }
-    }
-};
-
-Scene.prototype.Remove = function (object) {
 	switch(object.constructor.name) {
+        // Remove a model from the scene
 	    case "Model":
-            this.RemoveModel(object);
+            for (i=0, len=me.models.length; i<len; i++) {
+                if (object == me.models[i].data) {
+                    // Delete buffers
+                    gl.deleteBuffer(me.models[i].buffers.vbo);
+                    gl.deleteBuffer(me.models[i].buffers.ibo);
+                    gl.deleteBuffer(me.models[i].buffers.nbo);
+                    gl.deleteBuffer(me.models[i].buffers.tbo);
+
+                    // Delete textures
+                    gl.deleteTexture(me.models[i].textures[0]);
+                    gl.deleteTexture(me.models[i].textures[0]);
+
+                    // Delete properties
+                    delete me.models[i].data;
+                    delete me.models[i].buffers;
+                    delete me.models[i].textures;
+
+                    // Remove object
+                    me.models.splice(i,1);
+                    break;
+                }
+            }
             break;
-	    case "PointLight":
-	        break;
-		case "SpotLight":
-			break;
-		case "DirLight":
+        // Remove a point light from the scene
+        case "PointLight":
+            for (i=0, len=me.pointLights.length; i<len; i++) {
+                if (object == me.pointLights[i].data) {
+                    // Set light intensity to zero
+                    gl.uniform3fv(me.pointLights[i].uniforms[0], [0,0,0]);
+                    gl.uniform3fv(me.pointLights[i].uniforms[1], [0,0,0]);
+                    gl.uniform3fv(me.pointLights[i].uniforms[2], [0,0,0]);
+                    gl.uniform3fv(me.pointLights[i].uniforms[3], [0,0,0]);
+
+                    // Delete properties
+                    delete me.pointLights[i].data;
+                    delete me.pointLights[i].uniforms;
+
+                    // Remove object
+                    me.pointLights.splice(i,1);
+                    break;
+                }
+            }
+            break;
+        // Remove a spot light from the scene
+        case "SpotLight":
+            for (i=0, len=me.spotLights.length; i<len; i++) {
+                if (object == me.spotLights[i].data) {
+                    // Set light intensity to zero
+                    gl.uniform3fv(me.spotLights[i].uniforms[0], [0,0,0]);
+                    gl.uniform3fv(me.spotLights[i].uniforms[1], [0,0,0]);
+                    gl.uniform3fv(me.spotLights[i].uniforms[2], [0,0,0]);
+                    gl.uniform3fv(me.spotLights[i].uniforms[3], [0,0,0]);
+                    gl.uniform3fv(me.spotLights[i].uniforms[4], [0,0,0]);
+
+                    // Delete properties
+                    delete me.spotLights[i].data;
+                    delete me.spotLights[i].uniforms;
+
+                    // Remove object
+                    me.spotLights.splice(i,1);
+                    break;
+                }
+            }
+            break;
+        // Remove directional light from the scene
+        case "DirLight":
+            for (i=0, len=me.dirLights.length; i<len; i++) {
+                if (object == me.dirLights[i].data) {
+                    // Set light intensity to zero
+                    gl.uniform3fv(me.dirLights[i].uniforms[0], [0,0,0]);
+                    gl.uniform3fv(me.dirLights[i].uniforms[1], [0,0,0]);
+                    gl.uniform3fv(me.dirLights[i].uniforms[2], [0,0,0]);
+                    gl.uniform3fv(me.dirLights[i].uniforms[3], [0,0,0]);
+
+                    // Delete properties
+                    delete me.dirLights[i].data;
+                    delete me.dirLights[i].uniforms;
+
+                    // Remove object
+                    me.dirLights.splice(i,1);
+                    break;
+                }
+            }
 			break;
 	    default:
 	}
@@ -584,7 +637,7 @@ Scene.prototype.Render = function (camera) {
 	gl.cullFace(gl.BACK);
 
 	gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
-	gl.clearColor(0, 0, 0, 0.3);
+	gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
 	// Scene uniforms
