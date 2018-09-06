@@ -3,7 +3,7 @@
  * @author Marc Anderson
  * @version 1.0
  *
- * Adapted from: https://github.com/sessamekesh/IndigoCS-webgl-tutorials
+ * Inspired by: https://github.com/sessamekesh/IndigoCS-webgl-tutorials
  * Requires glMatrix: https://github.com/toji/gl-matrix
  */
 
@@ -39,6 +39,14 @@ THE SOFTWARE. */
            -y
 
 ALL ANGLES ARE IN DEGREES */
+
+/******* DEFAULTS ********/
+const MAX_POINT_LIGHTS = 4; // Minimum of 1
+const MAX_SPOT_LIGHTS = 4; // Minimum of 1
+const MAX_DIR_LIGHTS = 4; // Minimum of 1
+const MATERIAL_SHINE = 100;
+/*************************/
+
 const vertexShaderText = `
 precision mediump float;
 
@@ -237,23 +245,17 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 }
 
 `;
-// Default light restrictions: MINIMUM of 1
-const MAX_POINT_LIGHTS = 4;
-const MAX_SPOT_LIGHTS = 4;
-const MAX_DIR_LIGHTS = 4;
 
-// TODO: Removing lights (setting their intensity to 0, deleting objects, etc.);
 // TODO: overload the add models function (depending of number of textuers)
 // TODO: Move Material information to the model instead of the scene
 
 /**
- * A scene contains models, a camera, and phong lighting.
- * It contains functions for adding and removing models, moving
- * them around, and interacting with the camera and light.
- *
- * @class webgl 3D scene
- * @name Scene
- * @param gl webgl context
+ * @class Webgl 3D scene containing models, cameras, and phong lighting with
+ * point, spot, and directional lights.
+ * @name Scene 
+ * 
+ * @param {HTML Canvas} canvas Webgl context
+ * @param {Object} options Allows for customization of default settings
  */
 var Scene = function (canvas, options) {
 	var me = this;
@@ -277,14 +279,13 @@ var Scene = function (canvas, options) {
         console.error('Error compiling vertex shader: ' + gl.getShaderInfoLog(vs));
         return;
     }
-    
-    if (!options) options = {};
 
+    // Fragment shader
+    if (!options) options = {};
     me.maxPointLights = options.maxPointLights || MAX_POINT_LIGHTS;
     me.maxSpotLights = options.maxSpotLights || MAX_SPOT_LIGHTS;
     me.maxDirLights = options.maxDirLights || MAX_DIR_LIGHTS;
 
-    // Fragment shader
     var fsText = fragmentShaderText.replace('<numPointLights>', me.maxPointLights);
     fsText = fsText.replace('<numSpotLights>', me.maxSpotLights);
     fsText = fsText.replace('<numDirLights>', me.maxDirLights)
@@ -314,15 +315,15 @@ var Scene = function (canvas, options) {
     gl.detachShader(program, vs);
     gl.detachShader(program, fs);
 
-
+    // Initialize scene properties
 	me.gl = gl;
     me.program = program;
 	me.models = [];
 	me.pointLights = [];
 	me.dirLights = [];
-	me.spotLights = [];
-
-    // Global uniforms
+    me.spotLights = [];
+   
+    // Global uniform locations
     me.uniforms = {
 		mProj: gl.getUniformLocation(me.program, 'u_proj'),
 		mView: gl.getUniformLocation(me.program, 'u_view'),
@@ -333,7 +334,7 @@ var Scene = function (canvas, options) {
 		materialSpecular: gl.getUniformLocation(me.program, 'u_material.specular'),
     };
 
-    // Attributes
+    // Attribute locations
     me.attribs = {
 		vPos: gl.getAttribLocation(me.program, 'a_vertPosition'),
 		vNorm: gl.getAttribLocation(me.program, 'a_vertNormal'),
@@ -341,7 +342,7 @@ var Scene = function (canvas, options) {
 	};
 }
 
-Scene.prototype.AddModel = function (object) {
+Scene.prototype.AddModel = function (object, options) {
 	var me = this;
 	var gl = me.gl;
 
@@ -353,8 +354,8 @@ Scene.prototype.AddModel = function (object) {
 	var model = {
 		data: object,
 		buffers: {},
-		textures: [],
-	};
+        textures: [],
+    };
 
 	// Vertex buffer
 	model.buffers.vbo = gl.createBuffer();
@@ -399,7 +400,6 @@ Scene.prototype.AddModel = function (object) {
 	var texture = gl.createTexture();
 	setupTexture(model.data.texImg, texture);
 	model.textures[0] = texture;
-
 
 	// Specular map texture
 	var specMap = gl.createTexture();
@@ -644,7 +644,6 @@ Scene.prototype.Render = function (camera) {
 	gl.uniformMatrix4fv(me.uniforms.mView, gl.FALSE, camera.getViewMatrix());
 	gl.uniformMatrix4fv(me.uniforms.mProj, gl.FALSE, camera.projMatrix);
 	gl.uniform3fv(me.uniforms.viewPos, camera.position);
-	gl.uniform1f(me.uniforms.materialShine, 100); // Material shine
 	gl.uniform1i(me.uniforms.materialDiffuse, 0); // Texture unit 0
 	gl.uniform1i(me.uniforms.materialSpecular, 1); // Texture unit 1
 
@@ -678,6 +677,9 @@ Scene.prototype.Render = function (camera) {
     }
 
 	for (i=0, len=me.models.length; i<len; i++) {
+        // Material shine
+        gl.uniform1f(me.uniforms.materialShine, me.models[i].data.shine || MATERIAL_SHINE); 
+
         // Bind texture
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, me.models[i].textures[0]);

@@ -1,4 +1,9 @@
-// Load a text resource from a file over the network
+/**
+ * Load a text resource from a file over the network
+ * 
+ * @param {String} url Path to text resource
+ * @param {Function} callback Called on completion
+ */
 var loadTextResource = function (url, callback) {
 	var request = new XMLHttpRequest();
 	request.open('GET', url, true);
@@ -12,6 +17,12 @@ var loadTextResource = function (url, callback) {
 	request.send();
 };
 
+/**
+ * Load an image resource
+ * 
+ * @param {String} url Path to image
+ * @param {Function} callback Called on completion
+ */
 var loadImage = function (url, callback) {
 	var image = new Image();
 	image.onload = function () {
@@ -20,6 +31,12 @@ var loadImage = function (url, callback) {
 	image.src = url;
 };
 
+/**
+ * Load a JSON resource over the network
+ * 
+ * @param {String} url Path to JSON resource
+ * @param {Function} callback Called on completion
+ */
 var loadJSONResource = function (url, callback) {
 	loadTextResource(url, function (err, result) {
 		if (err) {

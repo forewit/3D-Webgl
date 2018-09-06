@@ -4,7 +4,7 @@ var scene;
 
 var init = function () {
     var canvas = document.getElementById('webgl-surface');
-    scene = new Scene(canvas, {maxDirLights: 1});
+    scene = new Scene(canvas);
 
     var camera = new Camera(
         glMatrix.toRadian(45),
@@ -12,7 +12,7 @@ var init = function () {
 		0.1,
         100.0
 	);
-    camera.Orient(
+    camera.orient(
         [0,0,5],
         [0,0,0],
         [0,1,0]
@@ -31,13 +31,13 @@ var init = function () {
         './models/tree_specular.png',
         function () {
             scene.Add(tree);
-            tree.Position([0,-3,-10]);
+            tree.setPosition([0,-3,-10]);
+            tree.shine = 10;
         }
     );
 
     var t0 = performance.now();
     var loop = function () {
-        var perSec = (performance.now() - t0) / 1000;
         scene.Render(camera);
         t0 = performance.now();
         requestAnimationFrame(loop);

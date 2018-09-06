@@ -1,15 +1,14 @@
 
 
 /**
- * @class movable Camera
+ * @class Camera with postiion, orientation, fov, and render distances
  * @name Camera
- *
- * @param {vec3} position Camera location [x, y, z]
- * @param {vec3} lookAt Where camera is pointed [x, y, z]
- * @param {vec3} up	vector pointing in up direction
+ * 
+ * @param {Float} fov Field of view
+ * @param {Float} aspect Aspect ratio
+ * @param {Float} near Near render distance
+ * @param {Float} far Far render distance
  */
-
-
 var Camera = function (fov, aspect, near, far) {
 	this.projMatrix = mat4.create();
 	mat4.perspective(
@@ -26,7 +25,15 @@ var Camera = function (fov, aspect, near, far) {
 	this.up = [0,1,0];
 	this.right = [1,0,0];
 }
-Camera.prototype.Orient = function (position, lookAt, up) {
+
+/**
+ * Moves and orients the camera
+ * 
+ * @param {vec3} position Camera location [x, y, z]
+ * @param {vec3} lookAt Where camera is pointed [x, y, z]
+ * @param {vec4} up Vector pointing in up direction
+ */
+Camera.prototype.orient = function (position, lookAt, up) {
 	this.position = position;
 	vec3.subtract(this.forward, lookAt, this.position);
 	vec3.cross(this.right, this.forward, up);
@@ -40,8 +47,7 @@ Camera.prototype.Orient = function (position, lookAt, up) {
 /**
  * Returns the view matrix created by the camera
  *
- * @param out the recieving matrix
- * @returns {mat4} out
+ * @returns {mat4} View matrix
  */
 Camera.prototype.getViewMatrix = function () {
 	var viewMatrix = mat4.create();
@@ -53,7 +59,7 @@ Camera.prototype.getViewMatrix = function () {
 /**
  * Rotates the camera up
  *
- * @param rad radians to rotate up
+ * @param {float} rad radians to rotate up
  */
 Camera.prototype.rotateUp = function (rad) {
 	var upMatrix = mat4.create();
@@ -65,7 +71,7 @@ Camera.prototype.rotateUp = function (rad) {
 /**
  * Rotates the camera right
  *
- * @param rad radians to rotate right
+ * @param {float} rad radians to rotate right
  */
 Camera.prototype.rotateRight = function (rad) {
 	var rightMatrix = mat4.create();
@@ -77,7 +83,7 @@ Camera.prototype.rotateRight = function (rad) {
 /**
  * Moves the camera forward
  *
- * @param dist distance to move forward
+ * @param {float} dist distance to move forward
  */
 Camera.prototype.moveForward = function (dist) {
 	vec3.scaleAndAdd(this.position, this.position, this.forward, dist);
@@ -86,7 +92,7 @@ Camera.prototype.moveForward = function (dist) {
 /**
  * Moves the camera right
  *
- * @param dist distance to move right
+ * @param {float} dist distance to move right
  */
 Camera.prototype.moveRight = function (dist) {
 	vec3.scaleAndAdd(this.position, this.position, this.right, dist);
@@ -95,7 +101,7 @@ Camera.prototype.moveRight = function (dist) {
 /**
  * Moves the camera up
  *
- * @param dist distance to move up
+ * @param {float} dist distance to move up
  */
 Camera.prototype.moveUp = function (dist) {
 	vec3.scaleAndAdd(this.position, this.position, this.up, dist);
