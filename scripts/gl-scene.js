@@ -144,12 +144,12 @@ void main()
         result += CalcDirLight(u_dirLights[i], norm, viewDir);
 
     // Point lights
-   // for(int i = 0; i < NUM_POINT_LIGHTS; i++)
-    //   result += CalcPointLight(u_pointLights[i], norm, v_fragPosition, viewDir);
+    for(int i = 0; i < NUM_POINT_LIGHTS; i++)
+       result += CalcPointLight(u_pointLights[i], norm, v_fragPosition, viewDir);
 
     // Spot lights
-   // for(int i = 0; i < NUM_SPOT_LIGHTS; i++)
-     //   result += CalcSpotLight(u_spotLights[i], norm, v_fragPosition, viewDir);
+    for(int i = 0; i < NUM_SPOT_LIGHTS; i++)
+        result += CalcSpotLight(u_spotLights[i], norm, v_fragPosition, viewDir);
 
     gl_FragColor = vec4(result, 1.0);
 }
@@ -166,8 +166,8 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 
   // attenuation
   float distance    = length(light.position - fragPos);
-  float attenuation = 1.0 / (light.constant + light.linear * distance +
-               light.quadratic * (distance * distance));
+  float attenuation = 1.0 / max((light.constant + light.linear * distance +
+               light.quadratic * (distance * distance)), 0.00001);
 
   // combine results
   vec3 ambient  = light.ambient  * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
@@ -176,6 +176,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
   ambient  *= attenuation;
   diffuse  *= attenuation;
   specular *= attenuation;
+
   return (ambient + diffuse + specular);
 }
 
@@ -210,8 +211,8 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
 
     // attenuation
     float distance    = length(light.position - fragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * distance +
-                 light.quadratic * (distance * distance));
+    float attenuation = 1.0 / max((light.constant + light.linear * distance +
+                 light.quadratic * (distance * distance)), 0.00001);
 
     // combine results
     vec3 ambient  = light.ambient  * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
@@ -282,9 +283,7 @@ var Scene = function (canvas, options) {
     me.maxPointLights = options.maxPointLights || MAX_POINT_LIGHTS;
     me.maxSpotLights = options.maxSpotLights || MAX_SPOT_LIGHTS;
     me.maxDirLights = options.maxDirLights || MAX_DIR_LIGHTS;
-
-    console.log(me.maxSpotLights,me.maxPointLights,me.maxDirLights);
-
+    
     // Fragment shader
     var fsText = fragmentShaderText.replace('<numPointLights>', me.maxPointLights);
     fsText = fsText.replace('<numSpotLights>', me.maxSpotLights);
@@ -332,7 +331,7 @@ var Scene = function (canvas, options) {
 		materialShine: gl.getUniformLocation(me.program, 'u_material.shine'),
 		materialDiffuse: gl.getUniformLocation(me.program, 'u_material.diffuse'),
 		materialSpecular: gl.getUniformLocation(me.program, 'u_material.specular'),
-	};
+    };
 
     // Attributes
     me.attribs = {
@@ -629,8 +628,8 @@ Scene.prototype.Render = function (camera) {
         // Bind texture
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, me.models[i].textures[0]);
-        console.log(me.models[i].textures[0]);
-		// Bind specular mapping
+
+        // Bind specular mapping
 		gl.activeTexture(gl.TEXTURE1);
 		gl.bindTexture(gl.TEXTURE_2D, me.models[i].textures[1]);
 
