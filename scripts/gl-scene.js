@@ -342,7 +342,12 @@ var Scene = function (canvas, options) {
 	};
 }
 
-Scene.prototype.AddModel = function (object, options) {
+/**
+ * Adds a model to the scene by generating buffers and uniform data
+ * 
+ * @param {JSON file} object Model JSON, texture, material and position data)
+ */
+Scene.prototype.AddModel = function (object) {
 	var me = this;
 	var gl = me.gl;
 
@@ -409,6 +414,10 @@ Scene.prototype.AddModel = function (object, options) {
 	me.models.push(model);
 };
 
+/**
+ * 
+ * @param {*} object 
+ */
 Scene.prototype.AddPointLight = function (object) {
 	var me = this;
 	var gl = me.gl;
