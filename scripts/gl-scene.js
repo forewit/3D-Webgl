@@ -345,7 +345,7 @@ var Scene = function (canvas, options) {
 /**
  * Adds a model to the scene by generating buffers and uniform data
  * 
- * @param {JSON file} object Model JSON, texture, material and position data)
+ * @param {Object} object Contains model JSON, texture, material and position data
  */
 Scene.prototype.AddModel = function (object) {
 	var me = this;
@@ -415,8 +415,9 @@ Scene.prototype.AddModel = function (object) {
 };
 
 /**
+ * Add a point light to the scene
  * 
- * @param {*} object 
+ * @param {Object} object Point light object that contains position, color, and attenuation data
  */
 Scene.prototype.AddPointLight = function (object) {
 	var me = this;
@@ -452,6 +453,12 @@ Scene.prototype.AddPointLight = function (object) {
 	me.pointLights.push(light);
 };
 
+/**
+ * Add a spot light to the scene
+ * 
+ * @param {Object} object Spot light object that contains position, orientation, 
+ * cutoff, color, and attenuation data
+ */
 Scene.prototype.AddSpotLight = function (object) {
 	var me = this;
 	var gl = me.gl;
@@ -489,6 +496,11 @@ Scene.prototype.AddSpotLight = function (object) {
 	me.spotLights.push(light);
 };
 
+/**
+ * Add a directional light to the scene
+ * 
+ * @param {Object} object Directional light object that contains orientation and color data
+ */
 Scene.prototype.AddDirLight = function (object) {
 	var me = this;
 	var gl = me.gl;
@@ -520,6 +532,11 @@ Scene.prototype.AddDirLight = function (object) {
 	me.dirLights.push(light);
 };
 
+/**
+ * Add lights or models with one function!
+ * 
+ * @param {Object} object Object to be added to the scene
+ */
 Scene.prototype.Add = function (object) {
 	switch(object.constructor.name) {
 	    case "Model":
@@ -538,6 +555,11 @@ Scene.prototype.Add = function (object) {
 	}
 };
 
+/**
+ * Remove lights or models with one function!
+ * 
+ * @param {Object} object Object to be removed from the scene
+ */
 Scene.prototype.Remove = function (object) {
     var me = this;
     var gl = me.gl;
@@ -568,6 +590,7 @@ Scene.prototype.Remove = function (object) {
                 }
             }
             break;
+
         // Remove a point light from the scene
         case "PointLight":
             for (i=0, len=me.pointLights.length; i<len; i++) {
@@ -588,6 +611,7 @@ Scene.prototype.Remove = function (object) {
                 }
             }
             break;
+
         // Remove a spot light from the scene
         case "SpotLight":
             for (i=0, len=me.spotLights.length; i<len; i++) {
@@ -609,6 +633,7 @@ Scene.prototype.Remove = function (object) {
                 }
             }
             break;
+
         // Remove directional light from the scene
         case "DirLight":
             for (i=0, len=me.dirLights.length; i<len; i++) {
@@ -633,6 +658,11 @@ Scene.prototype.Remove = function (object) {
 	}
 };
 
+/**
+ * Render the scene in webgl
+ * 
+ * @param {Object} camera Object that contains position, orientation, and fov data
+ */
 Scene.prototype.Render = function (camera) {
 	var me = this;
 	var gl = me.gl;
