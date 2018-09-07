@@ -49,5 +49,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-
+# Blender
+*.blend1
 # End of https://www.gitignore.io/api/macos,windows
