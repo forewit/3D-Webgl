@@ -1,4 +1,5 @@
-// https://www.minifier.org/
+// Source: github.com/jaforewit/gl-scene
+// minifier.org
 const MAX_POINT_LIGHTS=4;const MAX_SPOT_LIGHTS=4;const MAX_DIR_LIGHTS=4;const MATERIAL_SHINE=100;const vertexShaderText=`
 precision mediump float;
 attribute vec3 a_vertPosition;
