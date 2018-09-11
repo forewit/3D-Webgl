@@ -18,13 +18,6 @@ var init = function () {
         [0,0,0],
         [0,1,0]
     );
-    var dirLight = new DirLight(
-        [0, -1, 0],
-        [0.2, 0.2, 0.2],
-        [0.7, 0.7, 0.7],
-        [0.7, 0.7, 0.7]
-    );
-    //scene.Add(dirLight);
 
     var pointLight = new PointLight(
         [0, 0, 0],
@@ -100,8 +93,8 @@ var init = function () {
             [0,1,0]
         )
         if (camera.position[2] > -10) {
-            //camera.position[2] -= 1 * perSec;
-            //camera.orient(camera.position, [0,0,0], [0,1,0]);
+            camera.position[2] -= 1 * perSec;
+            camera.orient(camera.position, [0,0,0], [0,1,0]);
         }
 
         scene.Render(camera);
