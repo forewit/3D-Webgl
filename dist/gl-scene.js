@@ -658,7 +658,7 @@ Scene.prototype.Render = function (camera) {
 	gl.cullFace(gl.BACK);
 
 	gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
-    gl.clearColor(0, 0, 0, 0.3);
+    gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
 	// Scene uniforms

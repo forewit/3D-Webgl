@@ -222,7 +222,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     float intensity = clamp((theta - outer) / epsilon, 0.0, 1.0);
     diffuse  *= intensity;
     specular *= intensity;
-    
+
     return (ambient + diffuse + specular);
 }
 `;
@@ -657,7 +657,7 @@ Scene.prototype.Render = function (camera) {
 	gl.cullFace(gl.BACK);
 
 	gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
-    gl.clearColor(0, 0, 0, 0.3);
+    gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
 	// Scene uniforms
