@@ -50,6 +50,7 @@ var Model =  function (jsonURL, textureURL, specMapURL, callback) {
  * @param {vec3} position [x, y, z]
  */
 Model.prototype.setPosition = function (position) {
+    this.position = position;
     var origin = mat4.create();
     mat4.translate(this.world, origin, position);
 };

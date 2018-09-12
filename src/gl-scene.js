@@ -36,6 +36,8 @@ THE SOFTWARE. */
            -y
 ALL ANGLES ARE IN DEGREES */
 
+// Good light attenuation: [1.0, 0.045, 0.0075]
+
 /******* DEFAULTS ********/
 const MAX_POINT_LIGHTS = 4; // Minimum of 1
 const MAX_SPOT_LIGHTS = 4; // Minimum of 1
@@ -48,18 +50,21 @@ precision mediump float;
 attribute vec3 a_vertPosition;
 attribute vec2 a_vertTexCoord;
 attribute vec3 a_vertNormal;
+
 varying vec2 v_fragTexCoord;
 varying vec3 v_fragNormal;
 varying vec3 v_fragPosition;
+
 uniform mat4 u_world;
 uniform mat4 u_view;
 uniform mat4 u_proj;
+
 void main()
 {
     vec4 vertPosition = vec4(a_vertPosition, 1.0);
     vec3 surfacePosition = (u_world * vertPosition).xyz;
     v_fragPosition = surfacePosition;
-    v_fragNormal = (u_world * vec4(a_vertNormal, 0.0)).xyz;
+    v_fragNormal = (u_world * vec4(a_vertNormal, 0.0)).xyz; 
     v_fragTexCoord = a_vertTexCoord;
     gl_Position = u_proj * u_view * u_world * vertPosition;
 }
@@ -67,11 +72,15 @@ void main()
 
 const fragmentShaderText = `
 precision mediump float;
+
 varying vec2 v_fragTexCoord;
 varying vec3 v_fragNormal;
 varying vec3 v_fragPosition;
+
 uniform vec3 u_viewPosition;
+
 #define NUM_POINT_LIGHTS <numPointLights>
+
 struct PointLight {
     vec3 position;
     vec3 ambient;
@@ -82,6 +91,7 @@ struct PointLight {
     float quadratic;
 };
 uniform PointLight u_pointLights[NUM_POINT_LIGHTS];
+
 #define NUM_DIR_LIGHTS <numDirLights>
 struct DirLight {
     vec3 direction;
@@ -90,6 +100,7 @@ struct DirLight {
     vec3 specular;
 };
 uniform DirLight u_dirLights[NUM_DIR_LIGHTS];
+
 #define NUM_SPOT_LIGHTS <numSpotLights>
 struct SpotLight {
     vec3 position;
@@ -104,44 +115,55 @@ struct SpotLight {
     float outerCutOff;
 };
 uniform SpotLight u_spotLights[NUM_SPOT_LIGHTS];
+
 struct Material {
     sampler2D diffuse;
     sampler2D specular;
     float shine;
 };
 uniform Material u_material;
+
 // Function prototypes
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
+
 void main()
 {
     // properties
     vec3 norm = normalize(v_fragNormal);
     vec3 viewDir = normalize(u_viewPosition - v_fragPosition);
     vec3 result = vec3(0.0);
+
     // Directional lights
     for(int i = 0; i < NUM_DIR_LIGHTS; i++)
         result += CalcDirLight(u_dirLights[i], norm, viewDir);
+
     // Point lights
     for(int i = 0; i < NUM_POINT_LIGHTS; i++)
        result += CalcPointLight(u_pointLights[i], norm, v_fragPosition, viewDir);
+
     // Spot lights
     for(int i = 0; i < NUM_SPOT_LIGHTS; i++)
         result += CalcSpotLight(u_spotLights[i], norm, v_fragPosition, viewDir);
+
     gl_FragColor = vec4(result, 1.0);
 }
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
   vec3 lightDir = normalize(light.position - fragPos);
+
   // diffuse shading
   float diff = max(dot(normal, lightDir), 0.0);
+
   // specular shading
   vec3 reflectDir = reflect(-lightDir, normal);
   float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
+
   // attenuation
   float distance    = length(light.position - fragPos);
   float attenuation = 1.0 / max((light.constant + light.linear * distance +
                light.quadratic * (distance * distance)), 0.00001);
+
   // combine results
   vec3 ambient  = light.ambient  * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
   vec3 diffuse  = light.diffuse  * diff * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
@@ -149,32 +171,41 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
   ambient  *= attenuation;
   diffuse  *= attenuation;
   specular *= attenuation;
+
   return (ambient + diffuse + specular);
 }
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
     vec3 lightDir = normalize(-light.direction);
+
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
+
     // specular shading
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
+
     // combine results
     vec3 ambient  = light.ambient  * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
     vec3 diffuse  = light.diffuse  * diff * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
     vec3 specular = light.specular * spec * vec3(texture2D(u_material.specular, v_fragTexCoord));
     return (ambient + diffuse + specular);
 }
+
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     vec3 lightDir = normalize(light.position - fragPos);
+
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
+
     // specular shading
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
+
     // attenuation
     float distance    = length(light.position - fragPos);
     float attenuation = 1.0 / max((light.constant + light.linear * distance +
                  light.quadratic * (distance * distance)), 0.00001);
+
     // combine results
     vec3 ambient  = light.ambient  * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
     vec3 diffuse  = light.diffuse  * diff * vec3(texture2D(u_material.diffuse, v_fragTexCoord));
@@ -182,6 +213,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     ambient  *= attenuation;
     diffuse  *= attenuation;
     specular *= attenuation;
+
     // clamp for spot light
     float inner = cos(light.innerCutOff);
     float outer = cos(light.outerCutOff);
@@ -190,6 +222,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     float intensity = clamp((theta - outer) / epsilon, 0.0, 1.0);
     diffuse  *= intensity;
     specular *= intensity;
+
     return (ambient + diffuse + specular);
 }
 `;
@@ -276,7 +309,7 @@ var Scene = function (canvas, options) {
 		mProj: gl.getUniformLocation(me.program, 'u_proj'),
 		mView: gl.getUniformLocation(me.program, 'u_view'),
 		mWorld: gl.getUniformLocation(me.program, 'u_world'),
-		viewsPos: gl.getUniformLocation(me.program, 'u_viewPosition'),
+		viewPos: gl.getUniformLocation(me.program, 'u_viewPosition'),
 		materialShine: gl.getUniformLocation(me.program, 'u_material.shine'),
 		materialDiffuse: gl.getUniformLocation(me.program, 'u_material.diffuse'),
 		materialSpecular: gl.getUniformLocation(me.program, 'u_material.specular'),
@@ -624,13 +657,13 @@ Scene.prototype.Render = function (camera) {
 	gl.cullFace(gl.BACK);
 
 	gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
-	gl.clearColor(0, 0, 0, 0);
+    gl.clearColor(0, 0, 0, 0);
 	gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT);
 
 	// Scene uniforms
 	gl.uniformMatrix4fv(me.uniforms.mView, gl.FALSE, camera.getViewMatrix());
 	gl.uniformMatrix4fv(me.uniforms.mProj, gl.FALSE, camera.projMatrix);
-	gl.uniform3fv(me.uniforms.viewPos, camera.position);
+    gl.uniform3fv(me.uniforms.viewPos, camera.position);
 	gl.uniform1i(me.uniforms.materialDiffuse, 0); // Texture unit 0
 	gl.uniform1i(me.uniforms.materialSpecular, 1); // Texture unit 1
 
