@@ -1,0 +1,17 @@
+/* global css */
+body {
+    background: #000000;
+    margin: 0;
+    padding: 0;
+}
+
+/* section styles */
+#preload {
+  display: none;
+}
+
+#webgl-surface {
+    position: fixed;
+    left: 0;
+    top: 0;
+}
