@@ -18,8 +18,8 @@ var init = function () {
 
     var cube = new Model(
         './models/cube.json',
-        './models/cube.png',
-        './models/cube_specular.png',
+        './models/sphere.png',
+        './models/sphere_specular.png',
         function () {
             cube.setPosition([0, -3, 0]);
             cube.shine = 100;

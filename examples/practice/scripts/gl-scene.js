@@ -157,7 +157,7 @@ if (!gl) {
     document.body.innerHTML = "This example requires WebGL 2 which is unavailable on this system."
 }
 
-gl.clearColor(0.0, 0.0, 0.0, 1.0);
+gl.clearColor(0.0, 0.0, 0.0, 0.0);
 gl.enable(gl.DEPTH_TEST);
 gl.depthFunc(gl.LEQUAL);
 gl.blendFunc(gl.ONE, gl.ONE);
@@ -340,9 +340,8 @@ var start = function () {
     gl.bindVertexArray(sphereVertexArray);
 
     var numCubeVertices = box.positions.length / 3;
-    console.log(numCubeVertices);
 
-    var sphere = utils.createSphere();
+    var sphere = utils.createSphere({radius: 1});
 
     positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
