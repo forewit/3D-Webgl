@@ -312,29 +312,35 @@ var start = function () {
     gl.bindVertexArray(cubeVertexArray);
 
     var box = utils.createBox();
+    box = {
+        positions: models[0].vertices,
+        normals: models[0].normals,
+        uvs: models[0].texCoords
+    }
 
     var positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, box.positions, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(box.positions), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 3 * Float32Array.BYTES_PER_ELEMENT, 0);
     gl.enableVertexAttribArray(0);
 
     var normalBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, box.normals, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(box.normals), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(1, 3, gl.FLOAT, gl.FALSE, 3 * Float32Array.BYTES_PER_ELEMENT, 0);
     gl.enableVertexAttribArray(1);
 
     var uvBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, box.uvs, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(box.uvs), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(2, 2, gl.FLOAT, gl.FALSE, 2 * Float32Array.BYTES_PER_ELEMENT, 0);
     gl.enableVertexAttribArray(2);
 
     var sphereVertexArray = gl.createVertexArray();
     gl.bindVertexArray(sphereVertexArray);
 
     var numCubeVertices = box.positions.length / 3;
+    console.log(numCubeVertices);
 
     var sphere = utils.createSphere();
 
@@ -359,8 +365,6 @@ var start = function () {
 
     var viewProjMatrix = camera.getViewProjMatrix();
 
-
-
     var boxes = [
         {
             scale: [1, 1, 1],
@@ -369,13 +373,6 @@ var start = function () {
             modelMatrix: mat4.create(),
             mvpMatrix: mat4.create(),
         },
-        {
-            scale: [0.1, 0.1, 0.1],
-            rotate: [0, 0, Math.PI / 3],
-            translate: [0.8, 0.8, 0.4],
-            modelMatrix: mat4.create(),
-            mvpMatrix: mat4.create(),
-        }
     ];
 
     var matrixUniformData = new Float32Array(32);
@@ -385,25 +382,25 @@ var start = function () {
 
     var lights = [
         {
-            position: vec3.fromValues(0, 1, 0.5),
+            position: vec3.fromValues(1.5,0,0),
             color: vec3.fromValues(0.8, 0.0, 0.0),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
         },
         {
-            position: vec3.fromValues(1, 1, 0.5),
+            position: vec3.fromValues(-1.5, 0, 0),
             color: vec3.fromValues(0.0, 0.0, 0.8),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
         },
         {
-            position: vec3.fromValues(1, 0, 0.5),
+            position: vec3.fromValues(0, 1.5, 0),
             color: vec3.fromValues(0.0, 0.8, 0.0),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
         },
         {
-            position: vec3.fromValues(0.5, 0, 1),
+            position: vec3.fromValues(0, 0, 1.5),
             color: vec3.fromValues(0.0, 0.8, 0.8),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
@@ -435,7 +432,7 @@ var start = function () {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
-        var levels = levels = Math.floor(Math.log2(Math.max(this.width, this.height))) + 1;
+        var levels = Math.floor(Math.log2(Math.max(this.width, this.height))) + 1;
         gl.texStorage2D(gl.TEXTURE_2D, levels, gl.RGBA8, image.width, image.height);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, image.width, image.height, gl.RGBA, gl.UNSIGNED_BYTE, image);
         gl.generateMipmap(gl.TEXTURE_2D);
@@ -478,18 +475,6 @@ var start = function () {
             gl.disable(gl.BLEND);
 
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-            for (var i = 0, len = models.length; i < len; ++i) {
-                mat4.multiply(models[i].mvpMatrix, viewProjMatrix, models[i].world);
-
-                matrixUniformData.set(models[i].world);
-                matrixUniformData.set(models[i].mvpMatrix, 16);
-
-                gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, matrixUniformBuffer);
-                gl.bufferSubData(gl.UNIFORM_BUFFER, 0, matrixUniformData);
-
-                gl.drawArrays(gl.TRIANGLES, 0, models[i].indices.length);
-            }
 
             for (var i = 0, len = boxes.length; i < len; ++i) {
                 boxes[i].rotate[0] += 0.01;

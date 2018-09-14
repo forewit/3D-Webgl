@@ -5,13 +5,13 @@ var camera;
 var models = [];
 var init = function () {
     camera = new Camera(
-        glMatrix.toRadian(90),
+        glMatrix.toRadian(45),
 		canvas.clientWidth / canvas.clientHeight,
 		0.1,
         100.0
 	);
     camera.orient(
-        [1,1,1],
+        [0,0,10],
         [0,0,0],
         [0,1,0]
     );
