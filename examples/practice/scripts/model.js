@@ -9,8 +9,6 @@
  */
 var Model =  function (jsonURL, textureURL, specMapURL, callback) {
 	var me = this;
-	me.world = mat4.create();
-
 	loadJSONResource(jsonURL, function(jsonErr, modelJSON) {
         if (jsonErr) {
             console.error('Error loading JSON. ' + err);
@@ -28,14 +26,11 @@ var Model =  function (jsonURL, textureURL, specMapURL, callback) {
                         } else {
 
                             me.vertices = modelJSON.data.attributes.position.array;
-                            me.indices = modelJSON.data.index.array;
                             me.normals = modelJSON.data.attributes.normal.array;
                             me.texCoords = modelJSON.data.attributes.uv.array;
                             me.texImg = texImg;
                             me.specMapImg = specMapImg;
                             me.shine = 100;
-                            me.mvpMatrix = mat4.create();
-
                             callback();
                         }
                     });
@@ -43,16 +38,4 @@ var Model =  function (jsonURL, textureURL, specMapURL, callback) {
             });
         }
     });
-};
-
-/**
- * Position a model by translating its world matrix based
- * on the origin.
- *
- * @param {vec3} position [x, y, z]
- */
-Model.prototype.setPosition = function (position) {
-    this.position = position;
-    var origin = mat4.create();
-    mat4.translate(this.world, origin, position);
 };

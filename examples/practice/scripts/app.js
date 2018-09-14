@@ -11,7 +11,7 @@ var init = function () {
         100.0
 	);
     camera.orient(
-        [0,0,10],
+        [0,0,7],
         [0,0,0],
         [0,1,0]
     );
@@ -21,9 +21,6 @@ var init = function () {
         './models/sphere.png',
         './models/sphere_specular.png',
         function () {
-            cube.setPosition([0, -3, 0]);
-            cube.shine = 100;
-            // ADD TO WEBGL
             models.push(cube);
             start();
         }

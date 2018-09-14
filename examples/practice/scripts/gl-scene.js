@@ -39,7 +39,7 @@ ALL ANGLES ARE IN DEGREES */
 // Good light attenuation: [1.0, 0.045, 0.0075]
 
 const geoVertexShaderText =
-    `#version 300 es
+`#version 300 es
 
 layout(std140, column_major) uniform;
 
@@ -64,7 +64,7 @@ void main() {
 }`;
 
 const geoFragmentShaderText =
-    `#version 300 es
+`#version 300 es
 precision highp float;
 
 in vec4 vPosition;
@@ -82,7 +82,7 @@ void main() {
 }`;
 
 const mainVertexShaderText =
-    `#version 300 es
+`#version 300 es
 layout(std140, column_major) uniform;
 
 layout(location=0) in vec4 aPosition;
@@ -98,7 +98,7 @@ void main() {
 }`;
 
 const mainFragmentShaderText =
-    `#version 300 es
+`#version 300 es
 precision highp float;
 
 uniform LightUniforms {
@@ -121,20 +121,49 @@ void main() {
     vec3 position = texelFetch(uPositionBuffer, fragCoord, 0).xyz;
     vec3 normal = normalize(texelFetch(uNormalBuffer, fragCoord, 0).xyz);
     vec2 uv = texelFetch(uUVBuffer, fragCoord, 0).xy;
-
     vec4 baseColor = texture(uTextureMap, uv);
+
+/*
+    vec3 viewDir = normalize(uEyePosition - position);
+    vec3 result = vec3(0.0);
+
+    vec3 lightDir = normalize(uLight.position.xyz - position);
+
+    // diffuse shading
+    float diff = max(dot(normal, lightDir), 0.0);
+  
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 100.0);
+
+    // attenuation
+    float distance = length(uLight.position.xyz - position);
+    float attenuation = 1.0 / max((1.0 + 0.045 * distance +
+                 0.0075 * (distance * distance)), 0.00001);
+  
+    // combine results
+    vec3 ambient  = uLight.color.rgb  * baseColor.rgb;
+    vec3 diffuse  = uLight.color.rgb  * diff * baseColor.rgb;
+    vec3 specular = uLight.color.rgb * spec * baseColor.rgb;
+  
+    fragColor = vec4(attenuation * (ambient + diffuse + specular), baseColor.a);
+*/
+    
 
     vec3 eyeDirection = normalize(uEyePosition - position);
     vec3 lightVec = uLight.position.xyz - position;
-    float attenuation = 1.0 - length(lightVec);
+    float distance = length(lightVec);
+    float attenuation = 1.0 / max((1.0 + 0.045 * distance +
+        0.0075 * (distance * distance)), 0.00001);
     vec3 lightDirection = normalize(lightVec);
     vec3 reflectionDirection = reflect(-lightDirection, normal);
     float nDotL = max(dot(lightDirection, normal), 0.0);
     vec3 diffuse = nDotL * uLight.color.rgb;
-    float ambient = 0.1;
+    float ambient = 0.0;
     vec3 specular = pow(max(dot(reflectionDirection, eyeDirection), 0.0), 20.0) * uLight.color.rgb;
 
     fragColor = vec4(attenuation * (ambient + diffuse + specular) * baseColor.rgb, baseColor.a);
+
 }`;
 // TODO: overload the add models function (depending of number of textuers)
 // TODO: Move Material information to the model instead of the scene
@@ -307,7 +336,7 @@ var textureMapLocation = gl.getUniformLocation(mainProgram, "uTextureMap");
 // GEOMETRY SET UP
 ///////////////////////
 var start = function () {
-    
+
     var cubeVertexArray = gl.createVertexArray();
     gl.bindVertexArray(cubeVertexArray);
 
@@ -341,7 +370,7 @@ var start = function () {
 
     var numCubeVertices = box.positions.length / 3;
 
-    var sphere = utils.createSphere({radius: 1});
+    var sphere = utils.createSphere({ radius: 10 });
 
     positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -361,7 +390,6 @@ var start = function () {
     ////////////////////
     // UNIFORM DATA
     ////////////////////
-
     var viewProjMatrix = camera.getViewProjMatrix();
 
     var boxes = [
@@ -381,26 +409,20 @@ var start = function () {
 
     var lights = [
         {
-            position: vec3.fromValues(1.5,0,0),
-            color: vec3.fromValues(0.8, 0.0, 0.0),
-            uniformData: new Float32Array(24),
-            uniformBuffer: gl.createBuffer()
-        },
-        {
-            position: vec3.fromValues(-1.5, 0, 0),
-            color: vec3.fromValues(0.0, 0.0, 0.8),
-            uniformData: new Float32Array(24),
-            uniformBuffer: gl.createBuffer()
-        },
-        {
-            position: vec3.fromValues(0, 1.5, 0),
-            color: vec3.fromValues(0.0, 0.8, 0.0),
-            uniformData: new Float32Array(24),
-            uniformBuffer: gl.createBuffer()
-        },
-        {
-            position: vec3.fromValues(0, 0, 1.5),
+            position: vec3.fromValues(-3, 0, 0),
             color: vec3.fromValues(0.0, 0.8, 0.8),
+            uniformData: new Float32Array(24),
+            uniformBuffer: gl.createBuffer()
+        },
+        {
+            position: vec3.fromValues(0, 3, 0),
+            color: vec3.fromValues(0, 0.8, 0),
+            uniformData: new Float32Array(24),
+            uniformBuffer: gl.createBuffer()
+        },
+        {
+            position: vec3.fromValues(0,0,7),
+            color: vec3.fromValues(0.8,0.8,0.8),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
         }
@@ -440,7 +462,6 @@ var start = function () {
         //////////////////
         // BIND TEXTURES
         //////////////////
-
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, positionTarget);
         gl.activeTexture(gl.TEXTURE1);
@@ -453,7 +474,6 @@ var start = function () {
         //////////////////////////////
         // SET MAIN PROGRAM UNIFORMS
         //////////////////////////////
-
         gl.useProgram(mainProgram);
         gl.uniform3fv(eyePositionLocation, camera.position);
         gl.uniform1i(positionBufferLocation, 0);
@@ -462,11 +482,9 @@ var start = function () {
         gl.uniform1i(textureMapLocation, 3);
 
         function draw() {
-
             /////////////////////////
             // DRAW TO GBUFFER
             /////////////////////////
-
             gl.bindFramebuffer(gl.FRAMEBUFFER, gBuffer);
             gl.useProgram(geoProgram);
             gl.bindVertexArray(cubeVertexArray);
@@ -494,7 +512,6 @@ var start = function () {
             /////////////////////////
             // MAIN DRAW PASS
             /////////////////////////
-
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             gl.useProgram(mainProgram);
             gl.bindVertexArray(sphereVertexArray);

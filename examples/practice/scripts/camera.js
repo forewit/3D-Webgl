@@ -45,20 +45,19 @@ Camera.prototype.orient = function (position, lookAt, up) {
 };
 
 /**
- * Returns the view matrix created by the camera
+ * Returns the view projection matrix created by the camera
  *
  * @returns {mat4} View matrix
  */
-Camera.prototype.getViewMatrix = function () {
-	var viewMatrix = mat4.create();
-	var lookAt = vec3.create();
-	vec3.add(lookAt, this.position, this.forward);
-	return mat4.lookAt(viewMatrix, this.position, lookAt, this.up);
-};
-
 Camera.prototype.getViewProjMatrix = function () {
 	var viewProjMatrix = mat4.create();
-	return mat4.multiply(viewProjMatrix, this.projMatrix, this.getViewMatrix());
+	var viewMatrix = mat4.create();
+	var lookAt = vec3.create();
+
+	vec3.add(lookAt, this.position, this.forward);
+	mat4.lookAt(viewMatrix, this.position, lookAt, this.up);
+
+	return mat4.multiply(viewProjMatrix, this.projMatrix, viewMatrix);
 };
 
 /**
