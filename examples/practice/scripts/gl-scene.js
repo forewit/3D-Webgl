@@ -38,200 +38,8 @@ ALL ANGLES ARE IN DEGREES */
 
 // Good light attenuation: [1.0, 0.045, 0.0075]
 
-/******* DEFAULTS ********/
-const MAX_POINT_LIGHTS = 4; // Minimum of 1
-const MAX_SPOT_LIGHTS = 4; // Minimum of 1
-const MAX_DIR_LIGHTS = 4; // Minimum of 1
-const MATERIAL_SHINE = 100;
-/*************************/
-
-const vertexShaderText =
-`#version 300 es
-
-layout(location=0) in vec3 a_vertPosition;
-layout(location=1) in vec2 a_vertTexCoord;
-layout(location=2) in vec3 a_vertNormal;
-
-out vec2 v_fragTexCoord;
-out vec3 v_fragNormal;
-out vec3 v_fragPosition;
-
-uniform mat4 u_world;
-uniform mat4 u_view;
-uniform mat4 u_proj;
-
-void main()
-{
-    vec4 vertPosition = vec4(a_vertPosition, 1.0);
-    vec3 surfacePosition = (u_world * vertPosition).xyz;
-    v_fragPosition = surfacePosition;
-    v_fragNormal = (u_world * vec4(a_vertNormal, 0.0)).xyz; 
-    v_fragTexCoord = a_vertTexCoord;
-    gl_Position = u_proj * u_view * u_world * vertPosition;
-}
-`;
-
-const fragmentShaderText = 
-`#version 300 es
-precision highp float;
-
-in vec2 v_fragTexCoord;
-in vec3 v_fragNormal;
-in vec3 v_fragPosition;
-
-out vec4 fragColor;
-
-uniform vec3 u_viewPosition;
-
-#define NUM_POINT_LIGHTS <numPointLights>
-
-struct PointLight {
-    vec3 position;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float constant;
-    float linear;
-    float quadratic;
-};
-uniform PointLight u_pointLights[NUM_POINT_LIGHTS];
-
-#define NUM_DIR_LIGHTS <numDirLights>
-struct DirLight {
-    vec3 direction;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-};
-uniform DirLight u_dirLights[NUM_DIR_LIGHTS];
-
-#define NUM_SPOT_LIGHTS <numSpotLights>
-struct SpotLight {
-    vec3 position;
-    vec3 direction;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float constant;
-    float linear;
-    float quadratic;
-    float innerCutOff;
-    float outerCutOff;
-};
-uniform SpotLight u_spotLights[NUM_SPOT_LIGHTS];
-
-struct Material {
-    sampler2D diffuse;
-    sampler2D specular;
-    float shine;
-};
-uniform Material u_material;
-
-// Function prototypes
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
-vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
-
-void main()
-{
-    // properties
-    vec3 norm = normalize(v_fragNormal);
-    vec3 viewDir = normalize(u_viewPosition - v_fragPosition);
-    vec3 result = vec3(0.0);
-
-    // Directional lights
-    for(int i = 0; i < NUM_DIR_LIGHTS; i++)
-        result += CalcDirLight(u_dirLights[i], norm, viewDir);
-
-    // Point lights
-    for(int i = 0; i < NUM_POINT_LIGHTS; i++)
-       result += CalcPointLight(u_pointLights[i], norm, v_fragPosition, viewDir);
-
-    // Spot lights
-    for(int i = 0; i < NUM_SPOT_LIGHTS; i++)
-        result += CalcSpotLight(u_spotLights[i], norm, v_fragPosition, viewDir);
-
-    fragColor = vec4(result, 1.0);
-}
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
-  vec3 lightDir = normalize(light.position - fragPos);
-
-  // diffuse shading
-  float diff = max(dot(normal, lightDir), 0.0);
-
-  // specular shading
-  vec3 reflectDir = reflect(-lightDir, normal);
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
-
-  // attenuation
-  float distance    = length(light.position - fragPos);
-  float attenuation = 1.0 / max((light.constant + light.linear * distance +
-               light.quadratic * (distance * distance)), 0.00001);
-
-  // combine results
-  vec3 ambient  = light.ambient  * vec3(texture(u_material.diffuse, v_fragTexCoord));
-  vec3 diffuse  = light.diffuse  * diff * vec3(texture(u_material.diffuse, v_fragTexCoord));
-  vec3 specular = light.specular * spec * vec3(texture(u_material.specular, v_fragTexCoord));
-  ambient  *= attenuation;
-  diffuse  *= attenuation;
-  specular *= attenuation;
-
-  return (ambient + diffuse + specular);
-}
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir) {
-    vec3 lightDir = normalize(-light.direction);
-
-    // diffuse shading
-    float diff = max(dot(normal, lightDir), 0.0);
-
-    // specular shading
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
-
-    // combine results
-    vec3 ambient  = light.ambient  * vec3(texture(u_material.diffuse, v_fragTexCoord));
-    vec3 diffuse  = light.diffuse  * diff * vec3(texture(u_material.diffuse, v_fragTexCoord));
-    vec3 specular = light.specular * spec * vec3(texture(u_material.specular, v_fragTexCoord));
-    return (ambient + diffuse + specular);
-}
-
-vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
-    vec3 lightDir = normalize(light.position - fragPos);
-
-    // diffuse shading
-    float diff = max(dot(normal, lightDir), 0.0);
-
-    // specular shading
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_material.shine);
-
-    // attenuation
-    float distance    = length(light.position - fragPos);
-    float attenuation = 1.0 / max((light.constant + light.linear * distance +
-                 light.quadratic * (distance * distance)), 0.00001);
-
-    // combine results
-    vec3 ambient  = light.ambient  * vec3(texture(u_material.diffuse, v_fragTexCoord));
-    vec3 diffuse  = light.diffuse  * diff * vec3(texture(u_material.diffuse, v_fragTexCoord));
-    vec3 specular = light.specular * spec * vec3(texture(u_material.specular, v_fragTexCoord));
-    ambient  *= attenuation;
-    diffuse  *= attenuation;
-    specular *= attenuation;
-
-    // clamp for spot light
-    float inner = cos(light.innerCutOff);
-    float outer = cos(light.outerCutOff);
-    float theta = dot(lightDir, normalize(-light.direction));
-    float epsilon   = inner - outer;
-    float intensity = clamp((theta - outer) / epsilon, 0.0, 1.0);
-    diffuse  *= intensity;
-    specular *= intensity;
-
-    return (ambient + diffuse + specular);
-}
-`;
 const geoVertexShaderText =
-`#version 300 es
+    `#version 300 es
 
 layout(std140, column_major) uniform;
 
@@ -256,7 +64,7 @@ void main() {
 }`;
 
 const geoFragmentShaderText =
-`#version 300 es
+    `#version 300 es
 precision highp float;
 
 in vec4 vPosition;
@@ -274,8 +82,7 @@ void main() {
 }`;
 
 const mainVertexShaderText =
-`#version 300 es
-
+    `#version 300 es
 layout(std140, column_major) uniform;
 
 layout(location=0) in vec4 aPosition;
@@ -291,7 +98,7 @@ void main() {
 }`;
 
 const mainFragmentShaderText =
-`#version 300 es
+    `#version 300 es
 precision highp float;
 
 uniform LightUniforms {
@@ -340,502 +147,237 @@ void main() {
  * @param {HTML Canvas} canvas Webgl context
  * @param {Object} options Allows for customization of default settings
  */
-var Scene = function (canvas, options) {
-	var me = this;
+var canvas = document.getElementById("webgl-surface");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-	// Canvas
-    var gl = canvas.getContext('webgl2');
-    if (!gl) {
-    	console.log('Failed to get WebGL context - trying experimental context');
-    	gl = canvas.getContext('experimental-webgl');
-    }
-	if (!gl) {
-    	console.error('Your browser does not support WebGL - please use a different browser\nGoogleChrome works great!');
-    	return;
-    }
-
-	gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
-    gl.clearColor(0,0,0,0);
-    gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);
-    gl.blendFunc(gl.ONE, gl.ONE);
-    if (!gl.getExtension("EXT_color_buffer_float")) {
-        console.error("FLOAT color buffer not available");
-        document.body.innerHTML = "This example requires EXT_color_buffer_float which is unavailable on this system."
-        return;
-    }
-    
-    ////////////////////////////
-    // GBUFFER PROGRAM SETUP
-    ////////////////////////////
-    var geoVS = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(geoVS, geoVertexShaderText);
-    gl.compileShader(geoVS);
-    if (!gl.getShaderParameter(geoVS, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(geoVS));
-    }
-
-    var geoFS = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(geoFS, geoFragmentShaderText);
-    gl.compileShader(geoFS);
-    if (!gl.getShaderParameter(geoFS, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(geoFS));
-    }
-
-    var geoProgram = gl.createProgram();
-    gl.attachShader(geoProgram, geoVS);
-    gl.attachShader(geoProgram, geoFS);
-    gl.linkProgram(geoProgram);
-
-    if (!gl.getProgramParameter(geoProgram, gl.LINK_STATUS)) {
-        console.error(gl.getProgramInfoLog(geoProgram));
-    }
-
-    //////////////////////////////////////////
-    // GET GBUFFFER PROGRAM UNIFORM LOCATIONS
-    //////////////////////////////////////////
-    var matrixUniformLocation = gl.getUniformBlockIndex(geoProgram, "Matrices");
-    gl.uniformBlockBinding(geoProgram, matrixUniformLocation, 0);
-
-    ////////////////////////////
-    // GBUFFER SETUP
-    ////////////////////////////
-    var gBuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, gBuffer);
-
-    gl.activeTexture(gl.TEXTURE0);
-
-    var positionTarget = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, positionTarget);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, positionTarget, 0);
-
-    var normalTarget = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, normalTarget);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, normalTarget, 0);
-
-    var uvTarget = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, uvTarget);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RG16F, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, uvTarget, 0);
-
-    var depthTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT16, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);
-
-    gl.drawBuffers([
-        gl.COLOR_ATTACHMENT0,
-        gl.COLOR_ATTACHMENT1,
-        gl.COLOR_ATTACHMENT2
-    ]);
-
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    /////////////////////////////
-    // MAIN PROGRAM SETUP
-    /////////////////////////////
-    var mainVS = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(mainVS, mainVertexShaderText);
-    gl.compileShader(mainVS);
-    if (!gl.getShaderParameter(mainVS, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(mainVS));
-    }
-
-    var mainFS = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(mainFS, mainFragmentShaderText);
-    gl.compileShader(mainFS);
-    if (!gl.getShaderParameter(mainFS, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(mainFS));
-    }
-
-    var mainProgram = gl.createProgram();
-    gl.attachShader(mainProgram, mainVS);
-    gl.attachShader(mainProgram, mainFS);
-    gl.linkProgram(mainProgram);
-    if (!gl.getProgramParameter(mainProgram, gl.LINK_STATUS)) {
-        console.error(gl.getProgramInfoLog(mainProgram));
-    }
-
-    //////////////////////////////////////////////
-    // GET MAIN PROGRAM UNIFORM LOCATIONS
-    //////////////////////////////////////////////
-
-    me.lightUniformsLocation = gl.getUniformBlockIndex(mainProgram, "LightUniforms");
-    gl.uniformBlockBinding(mainProgram, lightUniformsLocation, 0);
-
-    me.eyePositionLocation = gl.getUniformLocation(mainProgram, "uEyePosition");
-
-    me.positionBufferLocation = gl.getUniformLocation(mainProgram, "uPositionBuffer");
-    me.normalBufferLocation = gl.getUniformLocation(mainProgram, "uNormalBuffer");
-    me.uVBufferLocation = gl.getUniformLocation(mainProgram, "uUVBuffer");
-    me.textureMapLocation = gl.getUniformLocation(mainProgram, "uTextureMap");
-
-    gl.useProgram(mainProgram);
-    gl.uniform1i(me.positionBufferLocation, 0);
-    gl.uniform1i(me.normalBufferLocation, 1);
-    gl.uniform1i(me.uVBufferLocation, 2);
-    gl.uniform1i(me.textureMapLocation, 3);
-
-    // Initialize scene properties
-    me.gl = gl;
-    me.gbuffer = gbuffer;
-    me.mainProgram = mainProgram;
-    me.geoProgram = geoProgram;
-	me.models = [];
-	me.pointLights = [];
-	me.dirLights = [];
-    me.spotLights = [];
+var gl = canvas.getContext("webgl2");
+if (!gl) {
+    console.error("WebGL 2 not available");
+    document.body.innerHTML = "This example requires WebGL 2 which is unavailable on this system."
 }
 
-/**
- * Adds a model to the scene by generating buffers and uniform data
- * 
- * @param {Object} object Contains model JSON, texture, material and position data
- */
-Scene.prototype.AddModel = function (object) {
-	var me = this;
-	var gl = me.gl;
+gl.clearColor(0.0, 0.0, 0.0, 1.0);
+gl.enable(gl.DEPTH_TEST);
+gl.depthFunc(gl.LEQUAL);
+gl.blendFunc(gl.ONE, gl.ONE);
 
-    // Prevent adding duplicates
-    for (i=0, len=me.models.length; i<len; i++) {
-        if (object == me.models[i].data) { return; }
-    }
+if (!gl.getExtension("EXT_color_buffer_float")) {
+    console.error("FLOAT color buffer not available");
+    document.body.innerHTML = "This example requires EXT_color_buffer_float which is unavailable on this system."
+}
 
-	var model = {
-		data: object,
-		buffers: {},
-        textures: [],
-    };
+////////////////////////////
+// GBUFFER PROGRAM SETUP
+////////////////////////////
+var geoVertexShader = gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(geoVertexShader, geoVertexShaderText);
+gl.compileShader(geoVertexShader);
 
-	// Position buffer: 0
-	model.buffers.positionBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, model.buffers.positionBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(model.data.vertices), gl.STATIC_DRAW);
+if (!gl.getShaderParameter(geoVertexShader, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(geoVertexShader));
+}
 
-	// Normal buffer: 1
-	model.buffers.normalBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, model.buffers.normalBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(model.data.normals), gl.STATIC_DRAW);
+var geoFragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+gl.shaderSource(geoFragmentShader, geoFragmentShaderText);
+gl.compileShader(geoFragmentShader);
 
-	// UV buffer: 2
-	model.buffers.uvBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, model.buffers.uvBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(model.data.texCoords), gl.STATIC_DRAW);
+if (!gl.getShaderParameter(geoFragmentShader, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(geoFragmentShader));
+}
 
-    // Index buffer
-	model.buffers.indexBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.buffers.indexBuffer);
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(model.data.indices), gl.STATIC_DRAW);
+var geoProgram = gl.createProgram();
+gl.attachShader(geoProgram, geoVertexShader);
+gl.attachShader(geoProgram, geoFragmentShader);
+gl.linkProgram(geoProgram);
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, null);
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+if (!gl.getProgramParameter(geoProgram, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(geoProgram));
+}
 
-	// Textures
-	function setupTexture(img, tex) {
-		gl.bindTexture(gl.TEXTURE_2D, tex);
-		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-		gl.texImage2D(
-			gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
-			gl.UNSIGNED_BYTE,
-			img
-		);
-		gl.bindTexture(gl.TEXTURE_2D, null);
-	}
+//////////////////////////////////////////
+// GET GBUFFFER PROGRAM UNIFORM LOCATIONS
+//////////////////////////////////////////
 
-	// Color texture
-	var texture = gl.createTexture();
-	setupTexture(model.data.texImg, texture);
-	model.textures[0] = texture;
+var matrixUniformLocation = gl.getUniformBlockIndex(geoProgram, "Matrices");
+gl.uniformBlockBinding(geoProgram, matrixUniformLocation, 0);
 
-	// Specular map texture
-	var specMap = gl.createTexture();
-	setupTexture(model.data.specMapImg, specMap);
-	model.textures[1] = specMap;
 
-	me.models.push(model);
-};
+////////////////////////////
+// GBUFFER SETUP
+////////////////////////////
 
-/**
- * Add a point light to the scene
- * 
- * @param {Object} object Point light object that contains position, color, and attenuation data
- */
-Scene.prototype.AddPointLight = function (object) {
-	var me = this;
-	var gl = me.gl;
+var gBuffer = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, gBuffer);
 
-    var len = me.pointLights.length;
+gl.activeTexture(gl.TEXTURE0);
 
-    // Prevent exceeding maximum
-    if (len == me.maxPointLights) {
-        console.error('Cannot exceed point light maximum.');
-        return;
-    }
-    // Prevent adding duplicates
-    for (i=0; i<len; i++) {
-        if (object == me.pointLights[i].data) {
-            console.error('Cannot add duplicate point light.')
-            return;
+var positionTarget = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, positionTarget);
+gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, gl.drawingBufferWidth, gl.drawingBufferHeight);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, positionTarget, 0);
+
+var normalTarget = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, normalTarget);
+gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA16F, gl.drawingBufferWidth, gl.drawingBufferHeight);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, normalTarget, 0);
+
+var uvTarget = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, uvTarget);
+gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RG16F, gl.drawingBufferWidth, gl.drawingBufferHeight);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, uvTarget, 0);
+
+var depthTexture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT16, gl.drawingBufferWidth, gl.drawingBufferHeight);
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);
+
+gl.drawBuffers([
+    gl.COLOR_ATTACHMENT0,
+    gl.COLOR_ATTACHMENT1,
+    gl.COLOR_ATTACHMENT2
+]);
+
+
+gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+/////////////////////////////
+// MAIN PROGRAM SETUP
+/////////////////////////////
+var mainVertexShader = gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(mainVertexShader, mainVertexShaderText);
+gl.compileShader(mainVertexShader);
+
+if (!gl.getShaderParameter(mainVertexShader, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(mainVertexShader));
+}
+
+var mainFragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+gl.shaderSource(mainFragmentShader, mainFragmentShaderText);
+gl.compileShader(mainFragmentShader);
+
+if (!gl.getShaderParameter(mainFragmentShader, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(mainFragmentShader));
+}
+
+var mainProgram = gl.createProgram();
+gl.attachShader(mainProgram, mainVertexShader);
+gl.attachShader(mainProgram, mainFragmentShader);
+gl.linkProgram(mainProgram);
+
+if (!gl.getProgramParameter(mainProgram, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(mainProgram));
+}
+
+//////////////////////////////////////////////
+// GET MAIN PROGRAM UNIFORM LOCATIONS
+//////////////////////////////////////////////
+
+var lightUniformsLocation = gl.getUniformBlockIndex(mainProgram, "LightUniforms");
+gl.uniformBlockBinding(mainProgram, lightUniformsLocation, 0);
+
+var eyePositionLocation = gl.getUniformLocation(mainProgram, "uEyePosition");
+
+var positionBufferLocation = gl.getUniformLocation(mainProgram, "uPositionBuffer");
+var normalBufferLocation = gl.getUniformLocation(mainProgram, "uNormalBuffer");
+var uVBufferLocation = gl.getUniformLocation(mainProgram, "uUVBuffer");
+var textureMapLocation = gl.getUniformLocation(mainProgram, "uTextureMap");
+
+///////////////////////
+// GEOMETRY SET UP
+///////////////////////
+var start = function () {
+    
+    var cubeVertexArray = gl.createVertexArray();
+    gl.bindVertexArray(cubeVertexArray);
+
+    var box = utils.createBox();
+
+    var positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, box.positions, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(0);
+
+    var normalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, box.normals, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(1);
+
+    var uvBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, box.uvs, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(2);
+
+    var sphereVertexArray = gl.createVertexArray();
+    gl.bindVertexArray(sphereVertexArray);
+
+    var numCubeVertices = box.positions.length / 3;
+
+    var sphere = utils.createSphere();
+
+    positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, sphere.positions, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(0);
+
+    var indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, sphere.indices, gl.STATIC_DRAW);
+
+    var numSphereElements = sphere.indices.length;
+
+    gl.bindVertexArray(null);
+
+
+    ////////////////////
+    // UNIFORM DATA
+    ////////////////////
+
+    var viewProjMatrix = camera.getViewProjMatrix();
+
+
+
+    var boxes = [
+        {
+            scale: [1, 1, 1],
+            rotate: [0, 0, 0],
+            translate: [0, 0, 0],
+            modelMatrix: mat4.create(),
+            mvpMatrix: mat4.create(),
+        },
+        {
+            scale: [0.1, 0.1, 0.1],
+            rotate: [0, 0, Math.PI / 3],
+            translate: [0.8, 0.8, 0.4],
+            modelMatrix: mat4.create(),
+            mvpMatrix: mat4.create(),
         }
-    }
+    ];
 
-	var light = {
-		data: object,
-		uniforms: [
-			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].position'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].ambient'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].diffuse'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].specular'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].constant'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].linear'),
-			gl.getUniformLocation(me.program, 'u_pointLights[' + len + '].quadratic'),
-		],
-	};
-	me.pointLights.push(light);
-};
-
-/**
- * Add a spot light to the scene
- * 
- * @param {Object} object Spot light object that contains position, orientation, 
- * cutoff, color, and attenuation data
- */
-Scene.prototype.AddSpotLight = function (object) {
-	var me = this;
-	var gl = me.gl;
-
-    var len = me.spotLights.length;
-
-    // Prevent exceeding maximum
-    if (len == me.maxSpotLights) {
-        console.error('Cannot exceed spot light maximum.');
-        return;
-    }
-    // Prevent adding duplicates
-    for (i=0; i<len; i++) {
-        if (object == me.spotLights[i].data) {
-            console.error('Cannot add duplicate spot light.')
-            return;
-        }
-    }
-
-	var light = {
-		data: object,
-		uniforms: [
-			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].position'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].direction'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].ambient'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].diffuse'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].specular'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].constant'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].linear'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].quadratic'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].innerCutOff'),
-			gl.getUniformLocation(me.program, 'u_spotLights[' + len + '].outerCutOff'),
-		],
-	};
-	me.spotLights.push(light);
-};
-
-/**
- * Add a directional light to the scene
- * 
- * @param {Object} object Directional light object that contains orientation and color data
- */
-Scene.prototype.AddDirLight = function (object) {
-	var me = this;
-	var gl = me.gl;
-
-    var len = me.dirLights.length;
-
-    // Prevent exceeding maximum
-    if (len == me.maxDirLights) {
-        console.error('Cannot exceed directional light maximum.');
-        return;
-    }
-    // Prevent adding duplicates
-    for (i=0; i<len; i++) {
-        if (object == me.dirLights[i].data) {
-            console.error('Cannot add duplicate directional light.')
-            return;
-        }
-    }
-
-	var light = {
-		data: object,
-		uniforms: [
-			gl.getUniformLocation(me.program, 'u_dirLights[' + len + '].direction'),
-			gl.getUniformLocation(me.program, 'u_dirLights[' + len + '].ambient'),
-			gl.getUniformLocation(me.program, 'u_dirLights[' + len + '].diffuse'),
-			gl.getUniformLocation(me.program, 'u_dirLights[' + len + '].specular'),
-		],
-	};
-	me.dirLights.push(light);
-};
-
-/**
- * Add lights or models with one function!
- * 
- * @param {Object} object Object to be added to the scene
- */
-Scene.prototype.Add = function (object) {
-	switch(object.constructor.name) {
-	    case "Model":
-			this.AddModel(object);
-	        break;
-	    case "PointLight":
-			this.AddPointLight(object);
-	        break;
-		case "SpotLight":
-			this.AddSpotLight(object);
-			break;
-		case "DirLight":
-            this.AddDirLight(object); 
-			break;
-	    default:
-	}
-};
-
-/**
- * Remove lights or models with one function!
- * 
- * @param {Object} object Object to be removed from the scene
- */
-Scene.prototype.Remove = function (object) {
-    var me = this;
-    var gl = me.gl;
-
-	switch(object.constructor.name) {
-        // Remove a model from the scene
-	    case "Model":
-            for (i=0, len=me.models.length; i<len; i++) {
-                if (object == me.models[i].data) {
-                    // Delete buffers
-                    gl.deleteBuffer(me.models[i].buffers.positionBuffer);
-                    gl.deleteBuffer(me.models[i].buffers.indexBuffer);
-                    gl.deleteBuffer(me.models[i].buffers.normalBuffer);
-                    gl.deleteBuffer(me.models[i].buffers.uvBuffer);
-
-                    // Delete textures
-                    gl.deleteTexture(me.models[i].textures[0]);
-                    gl.deleteTexture(me.models[i].textures[1]);
-
-                    // Delete properties
-                    delete me.models[i].data;
-                    delete me.models[i].buffers;
-                    delete me.models[i].textures;
-
-                    // Remove object
-                    me.models.splice(i,1);
-                    break;
-                }
-            }
-            break;
-
-        // Remove a point light from the scene
-        case "PointLight":
-            for (i=0, len=me.pointLights.length; i<len; i++) {
-                if (object == me.pointLights[i].data) {
-                    // Set light intensity to zero
-                    gl.uniform3fv(me.pointLights[i].uniforms[0], [0,0,0]);
-                    gl.uniform3fv(me.pointLights[i].uniforms[1], [0,0,0]);
-                    gl.uniform3fv(me.pointLights[i].uniforms[2], [0,0,0]);
-                    gl.uniform3fv(me.pointLights[i].uniforms[3], [0,0,0]);
-
-                    // Delete properties
-                    delete me.pointLights[i].data;
-                    delete me.pointLights[i].uniforms;
-
-                    // Remove object
-                    me.pointLights.splice(i,1);
-                    break;
-                }
-            }
-            break;
-
-        // Remove a spot light from the scene
-        case "SpotLight":
-            for (i=0, len=me.spotLights.length; i<len; i++) {
-                if (object == me.spotLights[i].data) {
-                    // Set light intensity to zero
-                    gl.uniform3fv(me.spotLights[i].uniforms[0], [0,0,0]);
-                    gl.uniform3fv(me.spotLights[i].uniforms[1], [0,0,0]);
-                    gl.uniform3fv(me.spotLights[i].uniforms[2], [0,0,0]);
-                    gl.uniform3fv(me.spotLights[i].uniforms[3], [0,0,0]);
-                    gl.uniform3fv(me.spotLights[i].uniforms[4], [0,0,0]);
-
-                    // Delete properties
-                    delete me.spotLights[i].data;
-                    delete me.spotLights[i].uniforms;
-
-                    // Remove object
-                    me.spotLights.splice(i,1);
-                    break;
-                }
-            }
-            break;
-
-        // Remove directional light from the scene
-        case "DirLight":
-            for (i=0, len=me.dirLights.length; i<len; i++) {
-                if (object == me.dirLights[i].data) {
-                    // Set light intensity to zero
-                    gl.uniform3fv(me.dirLights[i].uniforms[0], [0,0,0]);
-                    gl.uniform3fv(me.dirLights[i].uniforms[1], [0,0,0]);
-                    gl.uniform3fv(me.dirLights[i].uniforms[2], [0,0,0]);
-                    gl.uniform3fv(me.dirLights[i].uniforms[3], [0,0,0]);
-
-                    // Delete properties
-                    delete me.dirLights[i].data;
-                    delete me.dirLights[i].uniforms;
-
-                    // Remove object
-                    me.dirLights.splice(i,1);
-                    break;
-                }
-            }
-			break;
-	    default:
-	}
-};
-
-/**
- * Render the scene in webgl
- * 
- * @param {Object} camera Object that contains position, orientation, and fov data
- */
-Scene.prototype.Render = function (camera) {
-	var me = this;
-	var gl = me.gl;
-
-    // Scene uniforms
     var matrixUniformData = new Float32Array(32);
     var matrixUniformBuffer = gl.createBuffer();
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, matrixUniformBuffer);
@@ -844,30 +386,30 @@ Scene.prototype.Render = function (camera) {
     var lights = [
         {
             position: vec3.fromValues(0, 1, 0.5),
-            color:    vec3.fromValues(0.8, 0.0, 0.0),
+            color: vec3.fromValues(0.8, 0.0, 0.0),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
         },
         {
             position: vec3.fromValues(1, 1, 0.5),
-            color:    vec3.fromValues(0.0, 0.0, 0.8),
+            color: vec3.fromValues(0.0, 0.0, 0.8),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
         },
         {
             position: vec3.fromValues(1, 0, 0.5),
-            color:    vec3.fromValues(0.0, 0.8, 0.0),
+            color: vec3.fromValues(0.0, 0.8, 0.0),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
         },
         {
             position: vec3.fromValues(0.5, 0, 1),
-            color:    vec3.fromValues(0.0, 0.8, 0.8),
+            color: vec3.fromValues(0.0, 0.8, 0.8),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
         }
     ];
-    
+
     var mvpMatrix = mat4.create();
     for (var i = 0, len = lights.length; i < len; ++i) {
         utils.xformMatrix(mvpMatrix, lights[i].position);
@@ -876,59 +418,119 @@ Scene.prototype.Render = function (camera) {
         lights[i].uniformData.set(lights[i].position, 16);
         lights[i].uniformData.set(lights[i].color, 20);
 
-        gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, lights[i].uniformBuffer);        
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, lights[i].uniformBuffer);
         gl.bufferData(gl.UNIFORM_BUFFER, lights[i].uniformData, gl.STATIC_DRAW);
     }
 
-    //////////////////
-    // BIND TEXTURES
-    //////////////////
+    var image = new Image();
 
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, positionTarget);
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, normalTarget);
-    gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, uvTarget);
-    gl.activeTexture(gl.TEXTURE3);
-    gl.bindTexture(gl.TEXTURE_2D, colorTexture);
+    image.onload = function () {
+        var colorTexture = gl.createTexture();
+
+        gl.bindTexture(gl.TEXTURE_2D, colorTexture);
+
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+        var levels = levels = Math.floor(Math.log2(Math.max(this.width, this.height))) + 1;
+        gl.texStorage2D(gl.TEXTURE_2D, levels, gl.RGBA8, image.width, image.height);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, image.width, image.height, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.generateMipmap(gl.TEXTURE_2D);
+
+        //////////////////
+        // BIND TEXTURES
+        //////////////////
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, positionTarget);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, normalTarget);
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, uvTarget);
+        gl.activeTexture(gl.TEXTURE3);
+        gl.bindTexture(gl.TEXTURE_2D, colorTexture);
+
+        //////////////////////////////
+        // SET MAIN PROGRAM UNIFORMS
+        //////////////////////////////
+
+        gl.useProgram(mainProgram);
+        gl.uniform3fv(eyePositionLocation, camera.position);
+        gl.uniform1i(positionBufferLocation, 0);
+        gl.uniform1i(normalBufferLocation, 1);
+        gl.uniform1i(uVBufferLocation, 2);
+        gl.uniform1i(textureMapLocation, 3);
+
+        function draw() {
+
+            /////////////////////////
+            // DRAW TO GBUFFER
+            /////////////////////////
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, gBuffer);
+            gl.useProgram(geoProgram);
+            gl.bindVertexArray(cubeVertexArray);
+            gl.depthMask(true);
+            gl.disable(gl.BLEND);
+
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            for (var i = 0, len = models.length; i < len; ++i) {
+                mat4.multiply(models[i].mvpMatrix, viewProjMatrix, models[i].world);
+
+                matrixUniformData.set(models[i].world);
+                matrixUniformData.set(models[i].mvpMatrix, 16);
+
+                gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, matrixUniformBuffer);
+                gl.bufferSubData(gl.UNIFORM_BUFFER, 0, matrixUniformData);
+
+                gl.drawArrays(gl.TRIANGLES, 0, models[i].indices.length);
+            }
+
+            for (var i = 0, len = boxes.length; i < len; ++i) {
+                boxes[i].rotate[0] += 0.01;
+                boxes[i].rotate[1] += 0.02;
+
+                utils.xformMatrix(boxes[i].modelMatrix, boxes[i].translate, boxes[i].rotate, boxes[i].scale);
+                mat4.multiply(boxes[i].mvpMatrix, viewProjMatrix, boxes[i].modelMatrix);
+
+                matrixUniformData.set(boxes[i].modelMatrix);
+                matrixUniformData.set(boxes[i].mvpMatrix, 16);
+
+                gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, matrixUniformBuffer);
+                gl.bufferSubData(gl.UNIFORM_BUFFER, 0, matrixUniformData);
+
+                gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
+            }
+
+            /////////////////////////
+            // MAIN DRAW PASS
+            /////////////////////////
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.useProgram(mainProgram);
+            gl.bindVertexArray(sphereVertexArray);
+            gl.depthMask(false);
+            gl.enable(gl.BLEND);
 
 
-    //////////////////////////////
-    // SET MAIN PROGRAM UNIFORMS
-    //////////////////////////////
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    gl.useProgram(me.mainProgram);
-    gl.uniform3fv(me.eyePositionLocation, camera.position);
+            for (var i = 0, len = lights.length; i < len; ++i) {
+                gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, lights[i].uniformBuffer);
+                gl.drawElements(gl.TRIANGLES, numSphereElements, gl.UNSIGNED_SHORT, 0);
+            }
 
-    /////////////////////////
-    // DRAW TO GBUFFER
-    /////////////////////////
+            requestAnimationFrame(draw);
+        }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, me.gbuffer);
-    gl.useProgram(me.geoProgram);
-    gl.depthMask(true);
-    gl.disable(gl.BLEND);
+        requestAnimationFrame(draw);
 
-
-	for (i=0, len=me.models.length; i<len; i++) {
-        // Set attributes
-		gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].buffers.vbo);
-		gl.vertexAttribPointer(0,3, gl.FLOAT, gl.FALSE,3 * Float32Array.BYTES_PER_ELEMENT,0);
-		gl.enableVertexAttribArray(0);
-        
-        gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].buffers.tbo);
-		gl.vertexAttribPointer(1,2, gl.FLOAT, gl.FALSE,2 * Float32Array.BYTES_PER_ELEMENT,0);
-		gl.enableVertexAttribArray(1)
-
-		gl.bindBuffer(gl.ARRAY_BUFFER, me.models[i].buffers.nbo);
-		gl.vertexAttribPointer(2,3, gl.FLOAT, gl.FALSE,3 * Float32Array.BYTES_PER_ELEMENT,0);		
-		gl.enableVertexAttribArray(2);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, me.models[i].buffers.ibo);
-		gl.drawElements(gl.TRIANGLES, me.models[i].data.indices.length, gl.UNSIGNED_SHORT, 0);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     }
+
+    image.src = "./img/khronos_webgl.png";
 };

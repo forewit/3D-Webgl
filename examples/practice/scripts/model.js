@@ -33,6 +33,8 @@ var Model =  function (jsonURL, textureURL, specMapURL, callback) {
                             me.texCoords = modelJSON.data.attributes.uv.array;
                             me.texImg = texImg;
                             me.specMapImg = specMapImg;
+                            me.shine = 100;
+                            me.mvpMatrix = mat4.create();
 
                             callback();
                         }
