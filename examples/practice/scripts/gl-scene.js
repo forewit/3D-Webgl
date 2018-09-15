@@ -39,7 +39,7 @@ ALL ANGLES ARE IN DEGREES */
 // Good light attenuation: [1.0, 0.045, 0.0075]
 
 const geoVertexShaderText =
-`#version 300 es
+    `#version 300 es
 
 layout(std140, column_major) uniform;
 
@@ -64,7 +64,7 @@ void main() {
 }`;
 
 const geoFragmentShaderText =
-`#version 300 es
+    `#version 300 es
 precision highp float;
 
 in vec4 vPosition;
@@ -82,7 +82,7 @@ void main() {
 }`;
 
 const mainVertexShaderText =
-`#version 300 es
+    `#version 300 es
 layout(std140, column_major) uniform;
 
 layout(location=0) in vec4 aPosition;
@@ -98,7 +98,7 @@ void main() {
 }`;
 
 const mainFragmentShaderText =
-`#version 300 es
+    `#version 300 es
 precision highp float;
 
 uniform LightUniforms {
@@ -123,38 +123,11 @@ void main() {
     vec2 uv = texelFetch(uUVBuffer, fragCoord, 0).xy;
     vec4 baseColor = texture(uTextureMap, uv);
 
-/*
-    vec3 viewDir = normalize(uEyePosition - position);
-    vec3 result = vec3(0.0);
-
-    vec3 lightDir = normalize(uLight.position.xyz - position);
-
-    // diffuse shading
-    float diff = max(dot(normal, lightDir), 0.0);
-  
-    // specular shading
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 100.0);
-
-    // attenuation
-    float distance = length(uLight.position.xyz - position);
-    float attenuation = 1.0 / max((1.0 + 0.045 * distance +
-                 0.0075 * (distance * distance)), 0.00001);
-  
-    // combine results
-    vec3 ambient  = uLight.color.rgb  * baseColor.rgb;
-    vec3 diffuse  = uLight.color.rgb  * diff * baseColor.rgb;
-    vec3 specular = uLight.color.rgb * spec * baseColor.rgb;
-  
-    fragColor = vec4(attenuation * (ambient + diffuse + specular), baseColor.a);
-*/
-    
-
     vec3 eyeDirection = normalize(uEyePosition - position);
     vec3 lightVec = uLight.position.xyz - position;
     float distance = length(lightVec);
-    float attenuation = 1.0 / max((1.0 + 0.045 * distance +
-        0.0075 * (distance * distance)), 0.00001);
+    float attenuation = 1.0 / (1.0 + 0.045 * distance +
+        0.0075 * (distance * distance));
     vec3 lightDirection = normalize(lightVec);
     vec3 reflectionDirection = reflect(-lightDirection, normal);
     float nDotL = max(dot(lightDirection, normal), 0.0);
@@ -324,9 +297,7 @@ if (!gl.getProgramParameter(mainProgram, gl.LINK_STATUS)) {
 
 var lightUniformsLocation = gl.getUniformBlockIndex(mainProgram, "LightUniforms");
 gl.uniformBlockBinding(mainProgram, lightUniformsLocation, 0);
-
 var eyePositionLocation = gl.getUniformLocation(mainProgram, "uEyePosition");
-
 var positionBufferLocation = gl.getUniformLocation(mainProgram, "uPositionBuffer");
 var normalBufferLocation = gl.getUniformLocation(mainProgram, "uNormalBuffer");
 var uVBufferLocation = gl.getUniformLocation(mainProgram, "uUVBuffer");
@@ -340,11 +311,11 @@ var start = function () {
     var cubeVertexArray = gl.createVertexArray();
     gl.bindVertexArray(cubeVertexArray);
 
-    var box = utils.createBox();
     box = {
         positions: models[0].vertices,
         normals: models[0].normals,
-        uvs: models[0].texCoords
+        uvs: models[0].texCoords,
+        indices: models[0].indices
     }
 
     var positionBuffer = gl.createBuffer();
@@ -365,12 +336,20 @@ var start = function () {
     gl.vertexAttribPointer(2, 2, gl.FLOAT, gl.FALSE, 2 * Float32Array.BYTES_PER_ELEMENT, 0);
     gl.enableVertexAttribArray(2);
 
+    var indices = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(box.indices), gl.STATIC_DRAW);
+
+
     var sphereVertexArray = gl.createVertexArray();
     gl.bindVertexArray(sphereVertexArray);
 
-    var numCubeVertices = box.positions.length / 3;
 
-    var sphere = utils.createSphere({ radius: 10 });
+    var constant = 1.0, linear = 0.045, quadratic = 0.0075, lightMax = 0.8;
+    var radius = (-linear + Math.sqrt(linear * linear - 4.0 * quadratic * (constant - (256.0 / 5.0) * lightMax)))
+        / (2.0 * quadratic);
+    console.log(radius);
+    var sphere = utils.createSphere({ radius: 3 });
 
     positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -399,6 +378,7 @@ var start = function () {
             translate: [0, 0, 0],
             modelMatrix: mat4.create(),
             mvpMatrix: mat4.create(),
+            data: box
         },
     ];
 
@@ -409,20 +389,14 @@ var start = function () {
 
     var lights = [
         {
-            position: vec3.fromValues(-3, 0, 0),
-            color: vec3.fromValues(0.0, 0.8, 0.8),
-            uniformData: new Float32Array(24),
-            uniformBuffer: gl.createBuffer()
-        },
-        {
-            position: vec3.fromValues(0, 3, 0),
+            position: vec3.fromValues(2, 0, 0),
             color: vec3.fromValues(0, 0.8, 0),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
         },
         {
-            position: vec3.fromValues(0,0,7),
-            color: vec3.fromValues(0.8,0.8,0.8),
+            position: vec3.fromValues(-2, 0, 0),
+            color: vec3.fromValues(0.8, 0, 0),
             uniformData: new Float32Array(24),
             uniformBuffer: gl.createBuffer()
         }
@@ -481,6 +455,7 @@ var start = function () {
         gl.uniform1i(uVBufferLocation, 2);
         gl.uniform1i(textureMapLocation, 3);
 
+        var t0 = performance.now(), t1, frameCount = 0;
         function draw() {
             /////////////////////////
             // DRAW TO GBUFFER
@@ -505,8 +480,7 @@ var start = function () {
 
                 gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, matrixUniformBuffer);
                 gl.bufferSubData(gl.UNIFORM_BUFFER, 0, matrixUniformData);
-
-                gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
+                gl.drawElements(gl.TRIANGLES, boxes[i].data.indices.length, gl.UNSIGNED_SHORT, 0);
             }
 
             /////////////////////////
@@ -517,7 +491,7 @@ var start = function () {
             gl.bindVertexArray(sphereVertexArray);
             gl.depthMask(false);
             gl.enable(gl.BLEND);
-
+            gl.enable(gl.CULL_FACE);
 
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -526,6 +500,14 @@ var start = function () {
                 gl.drawElements(gl.TRIANGLES, numSphereElements, gl.UNSIGNED_SHORT, 0);
             }
 
+            // display ms per frame
+            frameCount++;
+            t1 = performance.now();
+            if (t1 - t0 >= 100) {
+                document.getElementById("fps").textContent = Math.round(1000 / ((t1 - t0) / frameCount));
+                t0 = t1;
+                frameCount = 0;
+            }
             requestAnimationFrame(draw);
         }
 
@@ -533,5 +515,5 @@ var start = function () {
 
     }
 
-    image.src = "./img/khronos_webgl.png";
+    image.src = "./models/sphere.png";
 };

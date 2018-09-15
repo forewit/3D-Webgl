@@ -28,6 +28,7 @@ var Model =  function (jsonURL, textureURL, specMapURL, callback) {
                             me.vertices = modelJSON.data.attributes.position.array;
                             me.normals = modelJSON.data.attributes.normal.array;
                             me.texCoords = modelJSON.data.attributes.uv.array;
+                            me.indices = modelJSON.data.index.array;
                             me.texImg = texImg;
                             me.specMapImg = specMapImg;
                             me.shine = 100;
