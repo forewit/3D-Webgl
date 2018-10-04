@@ -5,3 +5,5 @@ with models, cameras, and lighting.
 
 Feel free to make pull requests with any changes (minor or major) that you
 feel would improve the library.
+
+After release version is finished, this readme will include a full-featured tutorial.
