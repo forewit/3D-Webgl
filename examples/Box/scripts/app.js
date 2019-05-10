@@ -5,8 +5,6 @@ var camera;
 
 var init = function () {
     var canvas = document.getElementById('webgl-surface');
-    canvas.width = window.clientWidth;
-    canvas.height = window.clientHeight;
     scene = new Scene(canvas);
 
     camera = new Camera(
