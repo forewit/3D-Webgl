@@ -8,7 +8,7 @@ var init = function () {
     scene = new Scene(canvas);
 
     camera = new Camera(
-        glMatrix.toRadian(45),
+        glMatrix.toRadian(45)*(canvas.clientHeight/800),
 		canvas.clientWidth / canvas.clientHeight,
 		0.1,
         100.0
@@ -85,7 +85,7 @@ var init = function () {
 
                 console.log("hi");
                 camera.update(
-                    glMatrix.toRadian(45),
+                    glMatrix.toRadian(45)*(canvas.clientHeight/800),
                     canvas.clientWidth / canvas.clientHeight,
                     0.1,
                     100.0
