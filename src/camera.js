@@ -11,6 +11,16 @@
  */
 var Camera = function (fov, aspect, near, far) {
 	this.projMatrix = mat4.create();
+	this.update(fov, aspect, near, far);
+
+	// Default position
+	this.position = [0,0,0];
+	this.forward  = [0,0,-1];
+	this.up = [0,1,0];
+	this.right = [1,0,0];
+}
+
+Camera.prototype.update = function (fov, aspect, near, far) {
 	mat4.perspective(
 		this.projMatrix,
 		fov,
@@ -18,12 +28,6 @@ var Camera = function (fov, aspect, near, far) {
 		near,
 		far
 	);
-
-	// Default position
-	this.position = [0,0,0];
-	this.forward  = [0,0,-1];
-	this.up = [0,1,0];
-	this.right = [1,0,0];
 }
 
 /**

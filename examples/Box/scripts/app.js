@@ -5,6 +5,8 @@ var camera;
 
 var init = function () {
     var canvas = document.getElementById('webgl-surface');
+    canvas.width = window.clientWidth;
+    canvas.height = window.clientHeight;
     scene = new Scene(canvas);
 
     camera = new Camera(
@@ -78,6 +80,20 @@ var init = function () {
 
     var t0 = performance.now();
     var loop = function (dt) {
+        if (canvas.width != canvas.clientWidth || 
+            canvas.height != canvas.clientHeight) {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+
+                console.log("hi");
+                camera.update(
+                    glMatrix.toRadian(45),
+                    canvas.clientWidth / canvas.clientHeight,
+                    0.1,
+                    100.0
+                );
+        }
+
         var perSec = (performance.now() - t0) / 1000;
 
         mat4.rotate(
