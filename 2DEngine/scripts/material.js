@@ -16,6 +16,11 @@ class Material {
                 return null;
             }
 
+            gl.detachShader(this.program, vsShader);
+            gl.detachShader(this.program, fsShader);
+            gl.deleteShader(vsShader);
+            gl.deleteShader(fsShader);
+            gl.useProgram(null);
         }
     }
 

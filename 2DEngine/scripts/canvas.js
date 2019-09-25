@@ -26,10 +26,11 @@ class Canvas {
         this.canvasElm.height = 600;
 
         this.gl = this.canvasElm.getContext("webgl2");
+        this.gl.clearColor(0.4,0.6,1.0,0);
 
         document.body.appendChild(this.canvasElm);
 
-        var mat = new Material(this.gl, VS_01, FS_01);
+        this.sprite = new Sprite(this.gl, "./img/fireball.png", VS_01, FS_01);
     }
 
     update() {
@@ -38,6 +39,10 @@ class Canvas {
 
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
+
+        this.sprite.render();
+
 
         this.gl.flush();
     }
