@@ -29,6 +29,7 @@ class Canvas {
 
         document.body.appendChild(this.canvasElm);
 
+        var mat = new Material(this.gl, VS_01, FS_01);
     }
 
     update() {
