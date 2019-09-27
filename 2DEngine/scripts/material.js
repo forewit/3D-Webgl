@@ -24,6 +24,13 @@ class Material {
         }
     }
 
+    gatherParameters() {
+        let gl = this.gl;
+        let isUniform = 0;
+
+        this.parameters = {};
+    }
+
     getShader(script, type) {
         let gl = this.gl;
         var output = gl.createShader(type);

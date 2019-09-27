@@ -45,11 +45,9 @@ class Canvas {
         this.canvasElm.width = w;
         this.canvasElm.height = h;
 
-        let wRatio = w / (h / 1080);
         mat3.identity(this.worldSpaceMatrix);
         mat3.translate(this.worldSpaceMatrix, this.worldSpaceMatrix, [-1, 1]);
-        mat3.scale(this.worldSpaceMatrix, this.worldSpaceMatrix, [2/wRatio, -2/1080]);
-        
+        mat3.scale(this.worldSpaceMatrix, this.worldSpaceMatrix, [1/w, -1/h]);
     }
 
     update() {
