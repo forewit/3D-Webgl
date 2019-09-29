@@ -48,22 +48,14 @@ class Sprite {
         this.uv_x = this.size.x / this.image.width;
 		this.uv_y = this.size.y / this.image.height;
 
-        this.geo_buff = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.geo_buff);
-        gl.bufferData(gl.ARRAY_BUFFER, Sprite.createRectArray(0,0,this.size.x,this.size.y), gl.STATIC_DRAW);
-   
         this.tex_buff = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buff);
         gl.bufferData(gl.ARRAY_BUFFER, Sprite.createRectArray(0,0,this.uv_x,this.uv_y), gl.STATIC_DRAW);
     
-        this.aPositionLoc = gl.getAttribLocation(this.material.program, "a_position");
-        this.aTexcoordLoc = gl.getAttribLocation(this.material.program, "a_texCoord");
-        this.uImageLoc = gl.getUniformLocation(this.material.program, "u_image");
-
-        this.uFrameLoc = gl.getUniformLocation(this.material.program, "u_frame");
-		this.uWorldLoc = gl.getUniformLocation(this.material.program, "u_world");
-		this.uObjectLoc = gl.getUniformLocation(this.material.program, "u_object");
-
+        this.geo_buff = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.geo_buff);
+        gl.bufferData(gl.ARRAY_BUFFER, Sprite.createRectArray(0,0,this.size.x,this.size.y), gl.STATIC_DRAW);
+        
         gl.useProgram(null);
         this.isLoaded = true;
     }
@@ -81,20 +73,18 @@ class Sprite {
             gl.useProgram(this.material.program);
             
             gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
-            gl.uniform1i(this.uImageLoc, 0);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buff);
-            gl.enableVertexAttribArray(this.aTexcoordLoc);
-            gl.vertexAttribPointer(this.aTexcoordLoc, 2, gl.FLOAT, false, 0, 0);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.geo_buff);
-            gl.enableVertexAttribArray(this.aPositionLoc);
-            gl.vertexAttribPointer(this.aPositionLoc, 2, gl.FLOAT, false, 0, 0);
-
-            gl.uniform2f(this.uFrameLoc, frame_x, frame_y);
-			gl.uniformMatrix3fv(this.uWorldLoc, false, window.canvas.worldSpaceMatrix);
-			gl.uniformMatrix3fv(this.uObjectLoc, false, objectMatrix);
+			gl.bindTexture(gl.TEXTURE_2D, this.gl_tex);
+			this.material.set("u_image", 0);
+			
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.tex_buff);
+			this.material.set("a_texCoord");
+			
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.geo_buff);
+			this.material.set("a_position");
+			
+			this.material.set("u_frame", frame_x, frame_y);
+			this.material.set("u_world", window.canvas.worldSpaceMatrix);
+			this.material.set("u_object", objectMatrix);
 
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
             
