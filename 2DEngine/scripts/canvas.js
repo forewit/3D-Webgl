@@ -26,19 +26,15 @@ FS_01 = `
 class Canvas {
     constructor () {
         this.canvasElm = document.createElement("canvas");
-        this.canvasElm.width = 800;
-        this.canvasElm.height = 600;
-
-        this.worldSpaceMatrix = mat3.create();
 
         this.gl = this.canvasElm.getContext("webgl2");
         this.gl.clearColor(0.4,0.6,1.0,0);
 
         document.body.appendChild(this.canvasElm);
 
+        this.worldSpaceMatrix = mat3.create();
+
         this.sprite = new Sprite(this.gl, "./img/fireball.png", VS_01, FS_01, {width:512, height:512});
-        this.spritePos = new Point();
-        this.spriteFrame = new Point();
     }
 
     resize(w, h) {
@@ -48,18 +44,20 @@ class Canvas {
         mat3.identity(this.worldSpaceMatrix);
         mat3.translate(this.worldSpaceMatrix, this.worldSpaceMatrix, [-1, 1]);
         mat3.scale(this.worldSpaceMatrix, this.worldSpaceMatrix, [1/w, -1/h]);
+
+        this.gl.viewport(0,0,this.canvasElm.width, this.canvasElm.height);
     }
 
     update() {
-        this.gl.viewport(0,0,this.canvasElm.width, this.canvasElm.height);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
-
-        this.spriteFrame.x = (new Date() * 0.01) % 6;
-        this.sprite.render(this.spritePos, this.spriteFrame);
+        this.sprite.render(
+            new Point(), // position
+            new Point((new Date() * 0.01) % 6, 0) // frame (x,y)
+        );
 
 
         this.gl.flush();
